@@ -1,0 +1,79 @@
+import { useEffect, useState } from "react";
+import { adminListNamespaces } from "../api";
+import Breadcrumb from "../components/Breadcrumb";
+
+export default function Admin() {
+  const [namespaces, setNamespaces] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    try {
+      setNamespaces(await adminListNamespaces());
+    } catch (err) {
+      setError(err.response?.data?.error || "Erreur de chargement");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div>
+      <div className="mb-6">
+        <Breadcrumb items={[{ label: "Environnements", to: "/" }, { label: "Admin" }]} />
+        <h1 className="text-xl font-semibold">Tous les environnements</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          {namespaces.length} environnement{namespaces.length !== 1 ? "s" : ""} · tous clients confondus
+        </p>
+      </div>
+
+      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      {loading && <p className="text-sm text-slate-500">Chargement...</p>}
+
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
+            <tr>
+              <th className="px-4 py-3">Namespace</th>
+              <th className="px-4 py-3">Client</th>
+              <th className="px-4 py-3">Statut</th>
+              <th className="px-4 py-3">Quota</th>
+              <th className="px-4 py-3">Pods</th>
+              <th className="px-4 py-3">Composants</th>
+            </tr>
+          </thead>
+          <tbody>
+            {namespaces.map((ns) => (
+              <tr key={ns.id} className="border-t border-slate-100">
+                <td className="px-4 py-3 font-mono">{ns.name}</td>
+                <td className="px-4 py-3">
+                  {ns.clientEmail}
+                  <span className="text-slate-400"> ({ns.clientSlug})</span>
+                </td>
+                <td className="px-4 py-3">{ns.status}</td>
+                <td className="px-4 py-3">
+                  {ns.cpu} / {ns.memory}
+                </td>
+                <td className="px-4 py-3">
+                  {ns.podsReady}/{ns.podsTotal}
+                </td>
+                <td className="px-4 py-3">
+                  {ns.components?.map((c) => c.name).join(", ") || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!loading && namespaces.length === 0 && (
+          <p className="text-sm text-slate-500 p-4">Aucun environnement sur la plateforme.</p>
+        )}
+      </div>
+    </div>
+  );
+}
