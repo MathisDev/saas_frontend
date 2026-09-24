@@ -4,6 +4,7 @@ import { Trash2, ExternalLink, Wifi, GitBranch } from "lucide-react";
 import { getNamespace, deleteNamespace, listPods, updateQuotas, getComponentsSummary } from "../api";
 import Monitoring from "../components/Monitoring";
 import Breadcrumb from "../components/Breadcrumb";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { APP_VERSION } from "../version";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 
@@ -83,6 +84,9 @@ export default function NamespaceDetail() {
   const [cpu, setCpu] = useState("");
   const [memory, setMemory] = useState("");
   const [selectedComponent, setSelectedComponent] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function load() {
     try {
@@ -109,9 +113,16 @@ export default function NamespaceDetail() {
   }, [name]);
 
   async function handleDelete() {
-    if (!confirm(`Supprimer ${name} ? Cette action est irréversible.`)) return;
-    await deleteNamespace(name);
-    navigate("/");
+    setDeleteLoading(true);
+    setDeleteError("");
+    try {
+      await deleteNamespace(name);
+      navigate("/");
+    } catch (err) {
+      setDeleteError(err.response?.data?.error || "Échec de la suppression");
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   async function handleQuotaSubmit(e) {
@@ -158,7 +169,7 @@ export default function NamespaceDetail() {
             </a>
           )}
           <button
-            onClick={handleDelete}
+            onClick={() => setDeleteOpen(true)}
             className="flex items-center gap-1.5 text-sm text-red-600 border border-red-200 rounded-md px-3 py-1.5 hover:bg-red-50 transition"
           >
             <Trash2 size={14} />
@@ -166,6 +177,21 @@ export default function NamespaceDetail() {
           </button>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        open={deleteOpen}
+        title="Supprimer l'environnement"
+        description={`Supprime définitivement ${name} et tous ses composants (base de données, code, monitoring). Cette action est irréversible.`}
+        confirmText={name}
+        confirmLabel="Nom de l'environnement"
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setDeleteOpen(false);
+          setDeleteError("");
+        }}
+      />
 
       <div className="bg-white rounded-xl shadow p-5">
         <h2 className="text-sm font-semibold mb-3">Quotas</h2>

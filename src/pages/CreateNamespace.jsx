@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Globe } from "lucide-react";
+import { Plus, Trash2, Globe, Loader2, Check, Box } from "lucide-react";
 import { createNamespace } from "../api";
 import Breadcrumb from "../components/Breadcrumb";
 import { TYPE_GROUPS, DATABASE_TYPES, TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
@@ -9,12 +9,93 @@ function emptyComponent() {
   return { name: "", type: "nginx", image: "", expose: false };
 }
 
+// CREATION_STEPS reflète l'ordre réel de NamespaceHandler.Create côté API
+// (handlers/namespaces.go) : génération des manifests, dépôts GitLab
+// (composants + manifests), push gitops, dashboard Grafana. La création est un
+// unique appel bloquant (pas de flux de progression réel depuis le backend) -
+// l'avancement ci-dessous est simulé, plafonné avant la fin tant que la requête
+// n'a pas répondu, pour ne jamais afficher "terminé" avant que ce soit vrai.
+const CREATION_STEPS = [
+  "Validation de la configuration",
+  "Génération des manifests Kubernetes",
+  "Provisionnement des dépôts GitLab",
+  "Envoi vers le dépôt GitOps",
+  "Mise en place du monitoring",
+];
+
+function CreationProgress({ name, step, done }) {
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+            {done ? <Check size={18} /> : <Box size={18} />}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-slate-900">
+              {done ? "Environnement créé" : "Création en cours..."}
+            </p>
+            <p className="text-xs text-slate-500 font-mono truncate">{name}</p>
+          </div>
+        </div>
+
+        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-5">
+          <div
+            className="h-full bg-slate-900 transition-all duration-500 ease-out"
+            style={{ width: `${((done ? CREATION_STEPS.length : step + 1) / CREATION_STEPS.length) * 100}%` }}
+          />
+        </div>
+
+        <div className="space-y-2.5">
+          {CREATION_STEPS.map((label, i) => {
+            const isDone = done || i < step;
+            const isCurrent = !done && i === step;
+            return (
+              <div key={label} className="flex items-center gap-2.5">
+                {isDone ? (
+                  <span className="w-4 h-4 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Check size={11} strokeWidth={3} />
+                  </span>
+                ) : isCurrent ? (
+                  <Loader2 size={16} className="animate-spin text-slate-900 shrink-0" />
+                ) : (
+                  <span className="w-4 h-4 rounded-full border-2 border-slate-200 shrink-0" />
+                )}
+                <span className={`text-xs ${isDone || isCurrent ? "text-slate-700" : "text-slate-400"}`}>
+                  {label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {done && <p className="text-xs text-slate-400 mt-5">Redirection...</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function CreateNamespace() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [components, setComponents] = useState([emptyComponent()]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(0);
+  const [done, setDone] = useState(false);
+
+  // Avance d'une étape simulée à intervalle régulier tant que la requête est en
+  // vol, sans jamais atteindre la dernière (réservée à la vraie réponse du
+  // serveur, voir submit) - évite de mentir sur l'avancement si l'API répond
+  // plus vite ou plus lentement que le rythme simulé.
+  useEffect(() => {
+    if (!loading) return;
+    setStep(0);
+    const interval = setInterval(() => {
+      setStep((s) => (s < CREATION_STEPS.length - 2 ? s + 1 : s));
+    }, 700);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   function updateComponent(i, patch) {
     setComponents((cs) => cs.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
@@ -45,10 +126,11 @@ export default function CreateNamespace() {
           })),
       };
       const res = await createNamespace(payload);
-      navigate(`/namespaces/${res.name}`);
+      setStep(CREATION_STEPS.length - 1);
+      setDone(true);
+      setTimeout(() => navigate(`/namespaces/${res.name}`), 700);
     } catch (err) {
       setError(err.response?.data?.error || "Erreur lors de la création");
-    } finally {
       setLoading(false);
     }
   }
@@ -197,6 +279,8 @@ export default function CreateNamespace() {
           </button>
         </div>
       </form>
+
+      {loading && <CreationProgress name={name} step={step} done={done} />}
     </div>
   );
 }

@@ -3,11 +3,15 @@ import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { adminListNamespaces, deleteNamespace } from "../api";
 import Breadcrumb from "../components/Breadcrumb";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 
 export default function Admin() {
   const [namespaces, setNamespaces] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [target, setTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function load() {
     try {
@@ -28,13 +32,17 @@ export default function Admin() {
   // handleDelete supprime le namespace d'un client quelconque - le compte admin
   // n'est pas restreint aux routes /admin/* pour ça, il réutilise DELETE
   // /namespaces/:id (même route qu'un client sur ses propres environnements).
-  async function handleDelete(ns) {
-    if (!confirm(`Supprimer ${ns.name} (${ns.clientEmail}) ? Cette action est irréversible.`)) return;
+  async function handleDelete() {
+    setDeleteLoading(true);
+    setDeleteError("");
     try {
-      await deleteNamespace(ns.name);
+      await deleteNamespace(target.name);
+      setTarget(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.error || "Échec de la suppression");
+      setDeleteError(err.response?.data?.error || "Échec de la suppression");
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -88,7 +96,7 @@ export default function Admin() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
-                    onClick={() => handleDelete(ns)}
+                    onClick={() => setTarget(ns)}
                     title="Supprimer"
                     className="text-red-600 hover:bg-red-50 rounded-md p-1.5 transition"
                   >
@@ -103,6 +111,23 @@ export default function Admin() {
           <p className="text-sm text-slate-500 p-4">Aucun environnement sur la plateforme.</p>
         )}
       </div>
+
+      <ConfirmDeleteModal
+        open={!!target}
+        title="Supprimer l'environnement"
+        description={
+          target ? `Supprime définitivement ${target.name} (${target.clientEmail}) et tous ses composants. Cette action est irréversible.` : ""
+        }
+        confirmText={target?.name || ""}
+        confirmLabel="Nom de l'environnement"
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setTarget(null);
+          setDeleteError("");
+        }}
+      />
     </div>
   );
 }

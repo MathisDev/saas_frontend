@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { useAuth } from "../context/AuthContext";
 import Breadcrumb from "../components/Breadcrumb";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" });
@@ -48,6 +49,11 @@ export default function Organisation() {
 
   const [registrationEnabled, setRegistrationEnabled] = useState(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   async function load() {
     try {
@@ -143,15 +149,10 @@ export default function Organisation() {
     }
   }
 
-  async function handleDelete(client) {
-    if (
-      !confirm(
-        `Supprimer définitivement ${client.email} ? Ça supprime aussi ${client.namespaceCount} environnement${client.namespaceCount !== 1 ? "s" : ""} et tout ce qu'ils contiennent. Cette action est irréversible.`
-      )
-    )
-      return;
-    setBusyId(client.clientId);
-    setError("");
+  async function handleDelete() {
+    const client = deleteTarget;
+    setDeleteLoading(true);
+    setDeleteError("");
     try {
       await adminDeleteClient(client.clientId);
       setSelected((prev) => {
@@ -159,30 +160,31 @@ export default function Organisation() {
         next.delete(client.clientId);
         return next;
       });
+      setDeleteTarget(null);
       load();
     } catch (err) {
-      setError(err.response?.data?.error || "Échec de la suppression");
+      setDeleteError(err.response?.data?.error || "Échec de la suppression");
     } finally {
-      setBusyId(null);
+      setDeleteLoading(false);
     }
+  }
+
+  function openBulkDelete() {
+    if (selected.has(me?.clientId)) {
+      setError("Tu ne peux pas te supprimer toi-même - retire ton compte de la sélection.");
+      return;
+    }
+    setError("");
+    setDeleteError("");
+    setBulkConfirmOpen(true);
   }
 
   async function handleBulkDelete() {
     const ids = [...selected];
     if (ids.length === 0) return;
-    if (ids.includes(me?.clientId)) {
-      setError("Tu ne peux pas te supprimer toi-même - retire ton compte de la sélection.");
-      return;
-    }
-    if (
-      !confirm(
-        `Supprimer définitivement ${ids.length} client${ids.length !== 1 ? "s" : ""} et tous leurs environnements ? Cette action est irréversible.`
-      )
-    )
-      return;
 
     setBulkBusy(true);
-    setError("");
+    setDeleteError("");
     const failures = [];
     for (const id of ids) {
       try {
@@ -194,6 +196,7 @@ export default function Organisation() {
     }
     setSelected(new Set());
     setBulkBusy(false);
+    setBulkConfirmOpen(false);
     if (failures.length > 0) {
       setError(`Échec pour : ${failures.join(", ")}`);
     }
@@ -270,7 +273,7 @@ export default function Organisation() {
         </div>
         {selected.size > 0 && (
           <button
-            onClick={handleBulkDelete}
+            onClick={openBulkDelete}
             disabled={bulkBusy}
             className="flex items-center gap-1.5 text-sm text-red-600 border border-red-200 rounded-md px-3 py-2 hover:bg-red-50 transition disabled:opacity-50"
           >
@@ -359,7 +362,10 @@ export default function Organisation() {
                         <KeyRound size={14} />
                       </button>
                       <button
-                        onClick={() => handleDelete(client)}
+                        onClick={() => {
+                          setDeleteError("");
+                          setDeleteTarget(client);
+                        }}
                         disabled={isSelf || isBusy}
                         title={isSelf ? "Impossible de te supprimer toi-même" : "Supprimer"}
                         className="text-red-600 hover:bg-red-50 rounded-md p-1.5 transition disabled:opacity-30 disabled:hover:bg-transparent"
@@ -379,6 +385,38 @@ export default function Organisation() {
           </p>
         )}
       </div>
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title="Supprimer le client"
+        description={
+          deleteTarget
+            ? `Supprime définitivement ${deleteTarget.email} et ${deleteTarget.namespaceCount} environnement${deleteTarget.namespaceCount !== 1 ? "s" : ""} avec tout ce qu'ils contiennent. Cette action est irréversible.`
+            : ""
+        }
+        confirmText={deleteTarget?.email || ""}
+        confirmLabel="Email du client"
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError("");
+        }}
+      />
+
+      <ConfirmDeleteModal
+        open={bulkConfirmOpen}
+        title="Supprimer les clients sélectionnés"
+        description={`Supprime définitivement ${selected.size} client${selected.size !== 1 ? "s" : ""} et tous leurs environnements avec tout ce qu'ils contiennent. Cette action est irréversible.`}
+        confirmText={String(selected.size)}
+        confirmLabel="Nombre de clients à supprimer"
+        actionLabel={`Supprimer ${selected.size} client${selected.size !== 1 ? "s" : ""}`}
+        loading={bulkBusy}
+        error={deleteError}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkConfirmOpen(false)}
+      />
     </div>
   );
 }
