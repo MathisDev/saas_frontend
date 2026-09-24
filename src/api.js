@@ -43,6 +43,21 @@ export async function adminDeleteClient(clientId) {
   await api.delete(`/admin/clients/${clientId}`);
 }
 
+export async function adminSuspendClient(clientId, suspended) {
+  const { data } = await api.patch(`/admin/clients/${clientId}/suspend`, { suspended });
+  return data;
+}
+
+export async function adminGetSettings() {
+  const { data } = await api.get("/admin/settings");
+  return data;
+}
+
+export async function adminUpdateSettings(registrationEnabled) {
+  const { data } = await api.patch("/admin/settings", { registrationEnabled });
+  return data;
+}
+
 export async function login(email, password) {
   const { data } = await api.post("/auth/login", { email, password });
   return data;

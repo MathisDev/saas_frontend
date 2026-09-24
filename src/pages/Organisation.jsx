@@ -1,11 +1,37 @@
-import { useEffect, useState } from "react";
-import { KeyRound, Trash2, Copy, Check, ShieldCheck } from "lucide-react";
-import { adminListClients, adminResetClientPassword, adminDeleteClient } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { KeyRound, Trash2, Copy, Check, ShieldCheck, Search, UserX } from "lucide-react";
+import {
+  adminListClients,
+  adminResetClientPassword,
+  adminDeleteClient,
+  adminSuspendClient,
+  adminGetSettings,
+  adminUpdateSettings,
+} from "../api";
 import { useAuth } from "../context/AuthContext";
 import Breadcrumb from "../components/Breadcrumb";
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" });
+}
+
+function Toggle({ on, onClick, disabled, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 disabled:opacity-40 ${
+        on ? "bg-slate-900" : "bg-slate-200"
+      }`}
+    >
+      <span
+        className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
+        style={{ transform: on ? "translateX(18px)" : "translateX(2px)" }}
+      />
+    </button>
+  );
 }
 
 export default function Organisation() {
@@ -14,8 +40,14 @@ export default function Organisation() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [resetResult, setResetResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(new Set());
+
+  const [registrationEnabled, setRegistrationEnabled] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   async function load() {
     try {
@@ -27,9 +59,75 @@ export default function Organisation() {
     }
   }
 
+  async function loadSettings() {
+    try {
+      const data = await adminGetSettings();
+      setRegistrationEnabled(data.registrationEnabled);
+    } catch (err) {
+      setError(err.response?.data?.error || "Erreur de chargement des réglages");
+    }
+  }
+
   useEffect(() => {
     load();
+    loadSettings();
   }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((c) => c.email.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q));
+  }, [clients, search]);
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.clientId));
+
+  function toggleSelected(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      if (allFilteredSelected) {
+        const next = new Set(prev);
+        filtered.forEach((c) => next.delete(c.clientId));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach((c) => next.add(c.clientId));
+      return next;
+    });
+  }
+
+  async function handleToggleRegistration() {
+    setSettingsLoading(true);
+    setError("");
+    try {
+      const data = await adminUpdateSettings(!registrationEnabled);
+      setRegistrationEnabled(data.registrationEnabled);
+    } catch (err) {
+      setError(err.response?.data?.error || "Échec de la mise à jour des réglages");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }
+
+  async function handleToggleSuspend(client) {
+    setBusyId(client.clientId);
+    setError("");
+    try {
+      await adminSuspendClient(client.clientId, !client.suspended);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || "Échec de la mise à jour");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   async function handleResetPassword(client) {
     if (!confirm(`Réinitialiser le mot de passe de ${client.email} ? L'ancien cessera immédiatement de fonctionner.`)) return;
@@ -56,12 +154,50 @@ export default function Organisation() {
     setError("");
     try {
       await adminDeleteClient(client.clientId);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(client.clientId);
+        return next;
+      });
       load();
     } catch (err) {
       setError(err.response?.data?.error || "Échec de la suppression");
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function handleBulkDelete() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (ids.includes(me?.clientId)) {
+      setError("Tu ne peux pas te supprimer toi-même - retire ton compte de la sélection.");
+      return;
+    }
+    if (
+      !confirm(
+        `Supprimer définitivement ${ids.length} client${ids.length !== 1 ? "s" : ""} et tous leurs environnements ? Cette action est irréversible.`
+      )
+    )
+      return;
+
+    setBulkBusy(true);
+    setError("");
+    const failures = [];
+    for (const id of ids) {
+      try {
+        await adminDeleteClient(id);
+      } catch (err) {
+        const client = clients.find((c) => c.clientId === id);
+        failures.push(`${client?.email || id} (${err.response?.data?.error || "échec"})`);
+      }
+    }
+    setSelected(new Set());
+    setBulkBusy(false);
+    if (failures.length > 0) {
+      setError(`Échec pour : ${failures.join(", ")}`);
+    }
+    load();
   }
 
   function copyPassword() {
@@ -78,6 +214,22 @@ export default function Organisation() {
         <p className="text-sm text-slate-500 mt-0.5">
           {clients.length} client{clients.length !== 1 ? "s" : ""} sur la plateforme
         </p>
+      </div>
+
+      <div className="bg-white rounded-xl shadow p-5 mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold">Inscriptions ouvertes</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Désactive pour empêcher la création de nouveaux comptes (POST /clients) - n'affecte pas les
+            comptes déjà créés.
+          </p>
+        </div>
+        <Toggle
+          on={!!registrationEnabled}
+          onClick={handleToggleRegistration}
+          disabled={settingsLoading || registrationEnabled === null}
+          title={registrationEnabled ? "Désactiver les inscriptions" : "Activer les inscriptions"}
+        />
       </div>
 
       {resetResult && (
@@ -105,31 +257,81 @@ export default function Organisation() {
       )}
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+
+      <div className="flex items-center gap-3 mb-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher par email ou slug..."
+            className="w-full border border-slate-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+          />
+        </div>
+        {selected.size > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            disabled={bulkBusy}
+            className="flex items-center gap-1.5 text-sm text-red-600 border border-red-200 rounded-md px-3 py-2 hover:bg-red-50 transition disabled:opacity-50"
+          >
+            <Trash2 size={14} />
+            {bulkBusy ? "Suppression..." : `Supprimer la sélection (${selected.size})`}
+          </button>
+        )}
+      </div>
+
       {loading && <p className="text-sm text-slate-500">Chargement...</p>}
 
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
             <tr>
+              <th className="px-4 py-3 w-8">
+                <input
+                  type="checkbox"
+                  checked={allFilteredSelected}
+                  onChange={toggleSelectAll}
+                  className="rounded border-slate-300"
+                />
+              </th>
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Tier</th>
               <th className="px-4 py-3">Environnements</th>
               <th className="px-4 py-3">Créé le</th>
+              <th className="px-4 py-3">Accès</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {clients.map((client) => {
+            {filtered.map((client) => {
               const isSelf = client.clientId === me?.clientId;
+              const isBusy = busyId === client.clientId;
               return (
-                <tr key={client.clientId} className="border-t border-slate-100">
+                <tr key={client.clientId} className={`border-t border-slate-100 ${client.suspended ? "bg-slate-50/60" : ""}`}>
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(client.clientId)}
+                      onChange={() => toggleSelected(client.clientId)}
+                      disabled={isSelf}
+                      className="rounded border-slate-300"
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {client.email}
+                      <span className={client.suspended ? "text-slate-400 line-through decoration-slate-300" : ""}>
+                        {client.email}
+                      </span>
                       {client.isAdmin && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-700 bg-violet-50 rounded-full px-2 py-0.5">
                           <ShieldCheck size={11} />
                           Admin
+                        </span>
+                      )}
+                      {client.suspended && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100 rounded-full px-2 py-0.5">
+                          <UserX size={11} />
+                          Suspendu
                         </span>
                       )}
                     </div>
@@ -139,10 +341,18 @@ export default function Organisation() {
                   <td className="px-4 py-3">{client.namespaceCount}</td>
                   <td className="px-4 py-3 text-slate-500">{formatDate(client.createdAt)}</td>
                   <td className="px-4 py-3">
+                    <Toggle
+                      on={!client.suspended}
+                      onClick={() => handleToggleSuspend(client)}
+                      disabled={isSelf || isBusy}
+                      title={isSelf ? "Impossible de te suspendre toi-même" : client.suspended ? "Réactiver" : "Suspendre"}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => handleResetPassword(client)}
-                        disabled={busyId === client.clientId}
+                        disabled={isBusy}
                         title="Réinitialiser le mot de passe"
                         className="text-slate-500 hover:bg-slate-100 rounded-md p-1.5 transition disabled:opacity-40"
                       >
@@ -150,7 +360,7 @@ export default function Organisation() {
                       </button>
                       <button
                         onClick={() => handleDelete(client)}
-                        disabled={isSelf || busyId === client.clientId}
+                        disabled={isSelf || isBusy}
                         title={isSelf ? "Impossible de te supprimer toi-même" : "Supprimer"}
                         className="text-red-600 hover:bg-red-50 rounded-md p-1.5 transition disabled:opacity-30 disabled:hover:bg-transparent"
                       >
@@ -163,8 +373,10 @@ export default function Organisation() {
             })}
           </tbody>
         </table>
-        {!loading && clients.length === 0 && (
-          <p className="text-sm text-slate-500 p-4">Aucun client sur la plateforme.</p>
+        {!loading && filtered.length === 0 && (
+          <p className="text-sm text-slate-500 p-4">
+            {clients.length === 0 ? "Aucun client sur la plateforme." : "Aucun client ne correspond à cette recherche."}
+          </p>
         )}
       </div>
     </div>
