@@ -7,6 +7,7 @@ import CreateNamespace from "./pages/CreateNamespace";
 import NamespaceDetail from "./pages/NamespaceDetail";
 import PodDetail from "./pages/PodDetail";
 import Admin from "./pages/Admin";
+import Monitoring from "./pages/Monitoring";
 import Console from "./pages/Console";
 import Settings from "./pages/Settings";
 
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/namespaces/:name" element={<NamespaceDetail />} />
             <Route path="/namespaces/:name/pods/:pod" element={<PodDetail />} />
             <Route path="/console" element={<Console />} />
+            <Route path="/monitoring" element={<Monitoring />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
 

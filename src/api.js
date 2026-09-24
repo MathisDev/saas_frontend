@@ -4,11 +4,18 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || "https://api.saas-depoy.com
 
 const api = axios.create({ baseURL });
 
-export function setApiKey(key) {
-  if (key) {
-    api.defaults.headers.common["X-API-Key"] = key;
-  } else {
-    delete api.defaults.headers.common["X-API-Key"];
+// setCredential configure l'authentification globale de l'instance axios :
+// soit un token de session (login email/mot de passe, header Authorization),
+// soit une clé API brute (header X-API-Key) - jamais les deux à la fois.
+// cred = null retire toute authentification (logout).
+export function setCredential(cred) {
+  delete api.defaults.headers.common["Authorization"];
+  delete api.defaults.headers.common["X-API-Key"];
+  if (!cred) return;
+  if (cred.type === "token") {
+    api.defaults.headers.common["Authorization"] = `Bearer ${cred.value}`;
+  } else if (cred.type === "apikey") {
+    api.defaults.headers.common["X-API-Key"] = cred.value;
   }
 }
 
@@ -22,9 +29,18 @@ export async function adminListNamespaces() {
   return data;
 }
 
-export async function registerClient(email, tier) {
-  const { data } = await api.post("/clients", { email, tier });
+export async function login(email, password) {
+  const { data } = await api.post("/auth/login", { email, password });
   return data;
+}
+
+export async function registerClient(email, password, tier) {
+  const { data } = await api.post("/clients", { email, password, tier });
+  return data;
+}
+
+export async function setPassword(password) {
+  await api.post("/me/password", { password });
 }
 
 export async function listNamespaces() {
@@ -101,6 +117,15 @@ export async function getComponentsSummary(name) {
 export async function regenerateApiKey() {
   const { data } = await api.post("/me/api-key/regenerate");
   return data.apiKey;
+}
+
+// getAIManifest récupère le manifest Markdown auto-suffisant (auth, endpoints,
+// conventions, namespaces actuels) pensé pour être collé dans le contexte d'un
+// assistant IA - jamais de secret dedans (clé API/mot de passe), voir
+// handlers/manifest.go côté API.
+export async function getAIManifest() {
+  const { data } = await api.get("/me/ai-manifest", { responseType: "text" });
+  return data;
 }
 
 // runConsoleRequest exécute une requête arbitraire (utilisée par la Console) avec

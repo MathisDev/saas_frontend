@@ -12,6 +12,12 @@ COPY . .
 ARG VITE_API_BASE_URL=https://api.saas-depoy.com/api/v1
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Identifie le build affiche (footer sidebar, page environnement) - horodatage
+# plutot qu'un hash git : les deploiements se font aujourd'hui par build/push
+# manuel avant tout commit, un hash git figerait "version" sur un etat perime.
+ARG VITE_APP_VERSION=dev
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
+
 RUN npm run build
 
 # ---- Runtime stage ----

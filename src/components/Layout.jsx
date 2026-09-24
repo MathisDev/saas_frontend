@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutGrid, ShieldCheck, LogOut, Box, TerminalSquare, Settings as SettingsIcon } from "lucide-react";
+import { LayoutGrid, ShieldCheck, LogOut, Box, TerminalSquare, Settings as SettingsIcon, Activity } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { APP_VERSION } from "../version";
 
 function NavItem({ to, icon: Icon, label, end }) {
   return (
@@ -25,8 +26,8 @@ export default function Layout() {
   const { me, isAdmin, logout } = useAuth();
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      <aside className="w-60 shrink-0 border-r border-slate-200 bg-white flex flex-col">
+    <div className="h-screen flex bg-slate-50">
+      <aside className="w-60 shrink-0 border-r border-slate-200 bg-white flex flex-col overflow-y-auto">
         <div className="flex items-center gap-2 px-5 h-16 border-b border-slate-200">
           <div className="w-7 h-7 rounded-md bg-slate-900 text-white flex items-center justify-center">
             <Box size={16} />
@@ -40,6 +41,7 @@ export default function Layout() {
           </p>
           <NavItem to="/" end icon={LayoutGrid} label="Environnements" />
           <NavItem to="/console" icon={TerminalSquare} label="Console" />
+          <NavItem to="/monitoring" icon={Activity} label="Monitoring" />
           {isAdmin && <NavItem to="/admin" icon={ShieldCheck} label="Admin" />}
 
           <p className="px-3 text-xs font-medium text-slate-400 uppercase tracking-wide mb-1 mt-4">
@@ -65,11 +67,12 @@ export default function Layout() {
             <LogOut size={16} strokeWidth={2} />
             Déconnexion
           </button>
+          <p className="text-xs text-slate-300 text-center mt-2">v{APP_VERSION}</p>
         </div>
       </aside>
 
       <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-5xl mx-auto px-8 py-8">
+        <div className="px-8 py-8 h-full">
           <Outlet />
         </div>
       </main>
