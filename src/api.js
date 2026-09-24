@@ -29,6 +29,20 @@ export async function adminListNamespaces() {
   return data;
 }
 
+export async function adminListClients() {
+  const { data } = await api.get("/admin/clients");
+  return data;
+}
+
+export async function adminResetClientPassword(clientId) {
+  const { data } = await api.post(`/admin/clients/${clientId}/reset-password`);
+  return data.password;
+}
+
+export async function adminDeleteClient(clientId) {
+  await api.delete(`/admin/clients/${clientId}`);
+}
+
 export async function login(email, password) {
   const { data } = await api.post("/auth/login", { email, password });
   return data;

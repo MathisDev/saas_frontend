@@ -7,6 +7,7 @@ import CreateNamespace from "./pages/CreateNamespace";
 import NamespaceDetail from "./pages/NamespaceDetail";
 import PodDetail from "./pages/PodDetail";
 import Admin from "./pages/Admin";
+import Organisation from "./pages/Organisation";
 import Monitoring from "./pages/Monitoring";
 import Console from "./pages/Console";
 import Settings from "./pages/Settings";
@@ -43,6 +44,7 @@ export default function App() {
 
           <Route element={<RequireAdmin />}>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/organisation" element={<Organisation />} />
           </Route>
         </Routes>
       </BrowserRouter>

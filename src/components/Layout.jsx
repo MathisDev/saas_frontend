@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { LayoutGrid, ShieldCheck, LogOut, Box, TerminalSquare, Settings as SettingsIcon, Activity } from "lucide-react";
+import { LayoutGrid, ShieldCheck, LogOut, Box, TerminalSquare, Settings as SettingsIcon, Activity, Users } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../version";
 
@@ -43,6 +43,7 @@ export default function Layout() {
           <NavItem to="/console" icon={TerminalSquare} label="Console" />
           <NavItem to="/monitoring" icon={Activity} label="Monitoring" />
           {isAdmin && <NavItem to="/admin" icon={ShieldCheck} label="Admin" />}
+          {isAdmin && <NavItem to="/admin/organisation" icon={Users} label="Organisation" />}
 
           <p className="px-3 text-xs font-medium text-slate-400 uppercase tracking-wide mb-1 mt-4">
             Compte
