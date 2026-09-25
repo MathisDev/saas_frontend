@@ -3,9 +3,9 @@ import { X, ExternalLink, GitBranch, ArrowRight, Wifi } from "lucide-react";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 
-// ComponentInfoPopup est la "petite page" ouverte en cliquant un nœud de
-// ComponentNetworkMap : un résumé rapide (statut, pods, ressources), pas le
-// détail complet (logs/shell) - le bouton "Détails" y amène via ComponentDetail.
+// ComponentInfoPopup est la "petite page" ouverte en cliquant une ligne de
+// ComponentList : un résumé rapide (statut, pods, ressources), pas le détail
+// complet (logs/shell) - le bouton "Détails" y amène via ComponentDetail.
 export default function ComponentInfoPopup({ namespace, component, stats, onClose }) {
   if (!component) return null;
   const { icon: Icon, accent } = TYPE_STYLE[component.type] || TYPE_STYLE.custom;

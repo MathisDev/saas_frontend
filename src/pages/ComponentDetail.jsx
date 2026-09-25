@@ -8,7 +8,7 @@ import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 
 // ComponentDetail est la page "Détails" ouverte depuis ComponentInfoPopup (voir
-// NamespaceDetail/ComponentNetworkMap) : logs + shell, comme PodDetail, mais
+// NamespaceDetail/ComponentList) : logs + shell, comme PodDetail, mais
 // cadrés sur le composant plutôt que sur un pod précis - logs/exec restant des
 // opérations par pod côté API (voir handlers/pods.go), un sélecteur s'affiche
 // dès que le composant a plus d'une réplique.

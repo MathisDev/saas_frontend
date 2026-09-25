@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Trash2, ExternalLink, GitBranch, Plus, Globe } from "lucide-react";
 import { getNamespace, deleteNamespace, getComponentsSummary, addComponent } from "../api";
-import ComponentNetworkMap from "../components/ComponentNetworkMap";
+import ComponentList from "../components/ComponentList";
 import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
@@ -283,11 +283,7 @@ export default function NamespaceDetail() {
         )}
 
         <div className="mt-4">
-          <ComponentNetworkMap
-            components={ns.components}
-            selected={selectedComponent}
-            onSelect={(c) => setSelectedComponent(c.name)}
-          />
+          <ComponentList components={ns.components} onSelect={(c) => setSelectedComponent(c.name)} />
         </div>
       </div>
 
