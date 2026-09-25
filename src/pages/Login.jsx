@@ -1,18 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { login as loginRequest, registerClient } from "../api";
+import {
+  login as loginRequest,
+  registerClient,
+  verifyRegistration,
+  resendVerificationCode,
+} from "../api";
 
 export default function Login() {
   const { login, loginWithApiKey } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState("login"); // "login" | "register" | "key"
+  const [mode, setMode] = useState("login"); // "login" | "register" | "verify" | "key"
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [tier, setTier] = useState("free");
   const [keyInput, setKeyInput] = useState("");
+  const [code, setCode] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
 
   const [generatedKey, setGeneratedKey] = useState(null);
   const [pendingToken, setPendingToken] = useState(null);
@@ -39,11 +46,39 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await registerClient(email.trim(), password, tier);
+      await registerClient(email.trim(), password, tier);
+      setMode("verify");
+    } catch (err) {
+      setError(err.response?.data?.error || "Erreur lors de l'inscription");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitVerify(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await verifyRegistration(email.trim(), code.trim(), password);
       setGeneratedKey(res.apiKey);
       setPendingToken(res.token);
     } catch (err) {
-      setError(err.response?.data?.error || "Erreur lors de l'inscription");
+      setError(err.response?.data?.error || "Code invalide");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resendCode() {
+    setError("");
+    setResendMessage("");
+    setLoading(true);
+    try {
+      await resendVerificationCode(email.trim());
+      setResendMessage("Un nouveau code a été envoyé.");
+    } catch (err) {
+      setError(err.response?.data?.error || "Erreur lors de l'envoi du code");
     } finally {
       setLoading(false);
     }
@@ -169,6 +204,42 @@ export default function Login() {
                   className="w-full bg-slate-900 text-white rounded-md py-2 text-sm font-medium disabled:opacity-50"
                 >
                   {loading ? "..." : "Créer le compte"}
+                </button>
+              </form>
+            )}
+
+            {mode === "verify" && (
+              <form onSubmit={submitVerify} className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Un code à 6 chiffres a été envoyé à <strong>{email.trim()}</strong>. Il expire
+                  dans 15 minutes.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  required
+                  maxLength={6}
+                  placeholder="123456"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-center tracking-[0.5em]"
+                />
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                {resendMessage && <p className="text-sm text-slate-500">{resendMessage}</p>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-slate-900 text-white rounded-md py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  {loading ? "..." : "Valider le code"}
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={resendCode}
+                  className="w-full text-xs text-slate-500 hover:text-slate-700"
+                >
+                  Renvoyer le code
                 </button>
               </form>
             )}

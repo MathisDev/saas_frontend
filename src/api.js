@@ -68,6 +68,20 @@ export async function registerClient(email, password, tier) {
   return data;
 }
 
+// verifyRegistration finalise une inscription démarrée par registerClient : le
+// mot de passe est resoumis ici (jamais stocké côté API en attendant le code,
+// voir handlers.ClientHandler.VerifyRegistration) - renvoie la même forme que
+// l'ancien registerClient direct (clé API + token de session).
+export async function verifyRegistration(email, code, password) {
+  const { data } = await api.post("/clients/verify", { email, code, password });
+  return data;
+}
+
+export async function resendVerificationCode(email) {
+  const { data } = await api.post("/clients/resend-code", { email });
+  return data;
+}
+
 export async function setPassword(password) {
   await api.post("/me/password", { password });
 }
