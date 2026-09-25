@@ -16,7 +16,6 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [tier, setTier] = useState("free");
   const [keyInput, setKeyInput] = useState("");
   const [code, setCode] = useState("");
   const [resendMessage, setResendMessage] = useState("");
@@ -46,7 +45,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await registerClient(email.trim(), password, tier);
+      await registerClient(email.trim(), password);
       setMode("verify");
     } catch (err) {
       setError(err.response?.data?.error || "Erreur lors de l'inscription");
@@ -189,14 +188,6 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
                 />
-                <select
-                  value={tier}
-                  onChange={(e) => setTier(e.target.value)}
-                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
-                >
-                  <option value="free">free</option>
-                  <option value="pro">pro</option>
-                </select>
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 <button
                   type="submit"

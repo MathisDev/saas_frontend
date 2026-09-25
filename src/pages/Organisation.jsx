@@ -5,6 +5,7 @@ import {
   adminResetClientPassword,
   adminDeleteClient,
   adminSuspendClient,
+  adminUpdateClientTier,
   adminGetSettings,
   adminUpdateSettings,
 } from "../api";
@@ -119,6 +120,20 @@ export default function Organisation() {
       setError(err.response?.data?.error || "Échec de la mise à jour des réglages");
     } finally {
       setSettingsLoading(false);
+    }
+  }
+
+  async function handleTierChange(client, tier) {
+    if (tier === client.tier) return;
+    setBusyId(client.clientId);
+    setError("");
+    try {
+      await adminUpdateClientTier(client.clientId, tier);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || "Échec du changement d'abonnement");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -340,7 +355,21 @@ export default function Organisation() {
                     </div>
                     <span className="text-slate-400 font-mono text-xs">{client.slug}</span>
                   </td>
-                  <td className="px-4 py-3 capitalize">{client.tier}</td>
+                  <td className="px-4 py-3">
+                    {client.isAdmin ? (
+                      <span className="capitalize">{client.tier}</span>
+                    ) : (
+                      <select
+                        value={client.tier}
+                        onChange={(e) => handleTierChange(client, e.target.value)}
+                        disabled={isBusy}
+                        className="border border-slate-200 rounded-md px-2 py-1 text-sm capitalize disabled:opacity-50"
+                      >
+                        <option value="free">free</option>
+                        <option value="pro">pro</option>
+                      </select>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{client.namespaceCount}</td>
                   <td className="px-4 py-3 text-slate-500">{formatDate(client.createdAt)}</td>
                   <td className="px-4 py-3">

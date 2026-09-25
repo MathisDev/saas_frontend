@@ -5,7 +5,6 @@ import {
   getNamespace,
   deleteNamespace,
   listPods,
-  updateQuotas,
   getComponentsSummary,
   addComponent,
 } from "../api";
@@ -92,8 +91,6 @@ export default function NamespaceDetail() {
   const [pods, setPods] = useState([]);
   const [componentStats, setComponentStats] = useState({});
   const [error, setError] = useState("");
-  const [cpu, setCpu] = useState("");
-  const [memory, setMemory] = useState("");
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -107,8 +104,6 @@ export default function NamespaceDetail() {
     try {
       const data = await getNamespace(name);
       setNs(data);
-      setCpu(data.cpu);
-      setMemory(data.memory);
       setPods(await listPods(name));
       try {
         const summary = await getComponentsSummary(name);
@@ -138,12 +133,6 @@ export default function NamespaceDetail() {
     } finally {
       setDeleteLoading(false);
     }
-  }
-
-  async function handleQuotaSubmit(e) {
-    e.preventDefault();
-    await updateQuotas(name, { cpu, memory });
-    load();
   }
 
   async function handleAddComponent(e) {
@@ -231,30 +220,22 @@ export default function NamespaceDetail() {
 
       <div className="bg-white rounded-xl shadow p-5">
         <h2 className="text-sm font-semibold mb-3">Quotas</h2>
-        <form onSubmit={handleQuotaSubmit} className="flex gap-3 items-end">
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">CPU</label>
-            <input
-              value={cpu}
-              onChange={(e) => setCpu(e.target.value)}
-              className="border border-slate-300 rounded-md px-2 py-1.5 text-sm w-24"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-slate-500 mb-1">Mémoire</label>
-            <input
-              value={memory}
-              onChange={(e) => setMemory(e.target.value)}
-              className="border border-slate-300 rounded-md px-2 py-1.5 text-sm w-24"
-            />
-          </div>
-          <button className="bg-slate-900 text-white text-sm px-3 py-1.5 rounded-md">
-            Mettre à jour
-          </button>
-          <span className="text-xs text-slate-500 ml-2">
+        <p className="text-xs text-slate-500 mb-3">
+          Déterminés par ton abonnement, pas modifiables ici - contacte un admin pour en changer.
+        </p>
+        <div className="flex gap-5 items-center text-sm">
+          <span>
+            <span className="text-slate-500">CPU </span>
+            <span className="font-medium">{ns.cpu}</span>
+          </span>
+          <span>
+            <span className="text-slate-500">Mémoire </span>
+            <span className="font-medium">{ns.memory}</span>
+          </span>
+          <span className="text-xs text-slate-500">
             statut : {ns.status} · {ns.podsReady}/{ns.podsTotal} pods
           </span>
-        </form>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow p-5">

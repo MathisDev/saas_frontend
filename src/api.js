@@ -48,6 +48,11 @@ export async function adminSuspendClient(clientId, suspended) {
   return data;
 }
 
+export async function adminUpdateClientTier(clientId, tier) {
+  const { data } = await api.patch(`/admin/clients/${clientId}/tier`, { tier });
+  return data;
+}
+
 export async function adminGetSettings() {
   const { data } = await api.get("/admin/settings");
   return data;
@@ -63,8 +68,8 @@ export async function login(email, password) {
   return data;
 }
 
-export async function registerClient(email, password, tier) {
-  const { data } = await api.post("/clients", { email, password, tier });
+export async function registerClient(email, password) {
+  const { data } = await api.post("/clients", { email, password });
   return data;
 }
 
@@ -110,10 +115,6 @@ export async function addComponent(name, component) {
   return data;
 }
 
-export async function updateQuotas(name, quotas) {
-  const { data } = await api.patch(`/namespaces/${name}/quotas`, quotas);
-  return data;
-}
 
 export async function listPods(name) {
   const { data } = await api.get(`/namespaces/${name}/pods`);
