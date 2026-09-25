@@ -105,6 +105,11 @@ export async function deleteNamespace(name) {
   await api.delete(`/namespaces/${name}`);
 }
 
+export async function addComponent(name, component) {
+  const { data } = await api.post(`/namespaces/${name}/components`, component);
+  return data;
+}
+
 export async function updateQuotas(name, quotas) {
   const { data } = await api.patch(`/namespaces/${name}/quotas`, quotas);
   return data;

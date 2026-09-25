@@ -1,12 +1,23 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Trash2, ExternalLink, Wifi, GitBranch } from "lucide-react";
-import { getNamespace, deleteNamespace, listPods, updateQuotas, getComponentsSummary } from "../api";
+import { Trash2, ExternalLink, Wifi, GitBranch, Plus, Globe } from "lucide-react";
+import {
+  getNamespace,
+  deleteNamespace,
+  listPods,
+  updateQuotas,
+  getComponentsSummary,
+  addComponent,
+} from "../api";
 import ComponentNetworkMap from "../components/ComponentNetworkMap";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { APP_VERSION } from "../version";
-import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
+import { TYPE_GROUPS, DATABASE_TYPES, TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
+
+function emptyNewComponent() {
+  return { name: "", type: "nginx", image: "", expose: false };
+}
 
 const STATUS_STYLE = {
   Active: "bg-emerald-50 text-emerald-700 ring-emerald-600/10",
@@ -87,6 +98,10 @@ export default function NamespaceDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [showAddComponent, setShowAddComponent] = useState(false);
+  const [newComponent, setNewComponent] = useState(emptyNewComponent());
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
 
   async function load() {
     try {
@@ -129,6 +144,27 @@ export default function NamespaceDetail() {
     e.preventDefault();
     await updateQuotas(name, { cpu, memory });
     load();
+  }
+
+  async function handleAddComponent(e) {
+    e.preventDefault();
+    setAddError("");
+    setAddLoading(true);
+    try {
+      await addComponent(name, {
+        name: newComponent.name.trim(),
+        type: newComponent.type,
+        expose: newComponent.expose,
+        ...(newComponent.type === "custom" && newComponent.image ? { image: newComponent.image } : {}),
+      });
+      setNewComponent(emptyNewComponent());
+      setShowAddComponent(false);
+      load();
+    } catch (err) {
+      setAddError(err.response?.data?.error || "Erreur lors de l'ajout du composant");
+    } finally {
+      setAddLoading(false);
+    }
   }
 
   if (error) {
@@ -236,7 +272,119 @@ export default function NamespaceDetail() {
           {ns.components.length === 0 && (
             <p className="text-sm text-slate-500">Aucun composant pour l'instant.</p>
           )}
+
+          <button
+            onClick={() => setShowAddComponent((v) => !v)}
+            className="flex flex-col items-center justify-center gap-2 shrink-0 w-44 p-4 rounded-2xl border-2 border-dashed border-slate-200 text-sm font-medium text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50 transition-colors duration-200"
+          >
+            <Plus size={18} />
+            Ajouter un composant
+          </button>
         </div>
+
+        {showAddComponent && (
+          <form
+            onSubmit={handleAddComponent}
+            className="mt-4 flex gap-3 p-4 rounded-2xl border border-slate-200 bg-slate-50"
+          >
+            <div
+              className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ring-1 ${
+                ACCENT_BG[(TYPE_STYLE[newComponent.type] || TYPE_STYLE.custom).accent]
+              } ${ACCENT_RING[(TYPE_STYLE[newComponent.type] || TYPE_STYLE.custom).accent]}`}
+            >
+              {(() => {
+                const Icon = (TYPE_STYLE[newComponent.type] || TYPE_STYLE.custom).icon;
+                return <Icon size={20} strokeWidth={2} />;
+              })()}
+            </div>
+
+            <div className="flex-1 min-w-0 space-y-2.5">
+              <div className="flex gap-2">
+                <input
+                  required
+                  placeholder="nom du composant"
+                  value={newComponent.name}
+                  onChange={(e) => setNewComponent((c) => ({ ...c, name: e.target.value }))}
+                  className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                />
+                <select
+                  value={newComponent.type}
+                  onChange={(e) => setNewComponent((c) => ({ ...c, type: e.target.value }))}
+                  className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                >
+                  {TYPE_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.types.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              {newComponent.type === "custom" && (
+                <input
+                  placeholder="image (ex: registry.example.com/mon-app:latest)"
+                  value={newComponent.image}
+                  onChange={(e) => setNewComponent((c) => ({ ...c, image: e.target.value }))}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                />
+              )}
+
+              <div className="flex items-center justify-between pt-0.5">
+                {DATABASE_TYPES.has(newComponent.type) ? (
+                  <p className="text-xs text-slate-400">Non exposable publiquement</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setNewComponent((c) => ({ ...c, expose: !c.expose }))}
+                    className="flex items-center gap-2 group/toggle"
+                  >
+                    <span
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                        newComponent.expose ? "bg-slate-900" : "bg-slate-200"
+                      }`}
+                    >
+                      <span
+                        className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200"
+                        style={{ transform: newComponent.expose ? "translateX(18px)" : "translateX(2px)" }}
+                      />
+                    </span>
+                    <span className="flex items-center gap-1 text-xs font-medium text-slate-600 group-hover/toggle:text-slate-900">
+                      <Globe size={12} />
+                      Exposer publiquement
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {addError && <p className="text-sm text-red-600">{addError}</p>}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="submit"
+                  disabled={addLoading}
+                  className="bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-md disabled:opacity-50"
+                >
+                  {addLoading ? "Ajout..." : "Ajouter"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddComponent(false);
+                    setNewComponent(emptyNewComponent());
+                    setAddError("");
+                  }}
+                  className="text-xs text-slate-500 px-3 py-1.5"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
 
         {ns.components
           .filter((c) => c.name === selectedComponent)
