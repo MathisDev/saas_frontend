@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Trash2, ExternalLink, Wifi, GitBranch } from "lucide-react";
 import { getNamespace, deleteNamespace, listPods, updateQuotas, getComponentsSummary } from "../api";
-import Monitoring from "../components/Monitoring";
+import ComponentNetworkMap from "../components/ComponentNetworkMap";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { APP_VERSION } from "../version";
@@ -340,7 +340,8 @@ export default function NamespaceDetail() {
       </div>
 
       <div className="bg-white rounded-xl shadow p-5">
-        <Monitoring namespace={name} />
+        <h2 className="text-sm font-semibold mb-4">Carte réseau</h2>
+        <ComponentNetworkMap components={ns.components} />
       </div>
 
       <p className="text-xs text-slate-300 text-center">v{APP_VERSION}</p>

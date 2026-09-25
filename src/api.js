@@ -142,11 +142,6 @@ export function getShellSocketURL(name, pod, ticket) {
   return `${wsBase}/namespaces/${name}/pods/${pod}/shell?ticket=${encodeURIComponent(ticket)}`;
 }
 
-export async function searchLogs(name, { pod, q, size } = {}) {
-  const { data } = await api.get(`/namespaces/${name}/logs`, { params: { pod, q, size } });
-  return data;
-}
-
 export async function getMetrics(name) {
   const { data } = await api.get(`/namespaces/${name}/metrics`);
   return data;
