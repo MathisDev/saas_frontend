@@ -5,10 +5,12 @@ import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 // namespace. Le reseau k8s est plat au sein d'un namespace : n'importe quel
 // composant peut en joindre un autre via cette adresse - les traits ne
 // representent donc pas une dependance reelle/declaree (aucune n'est trackee
-// cote API, voir le commentaire sur ComponentNode dans NamespaceDetail), juste
-// la joignabilite potentielle. Le port affiche sur chaque noeud est celui a
-// utiliser pour LE joindre, lui, depuis n'importe quel autre composant.
-export default function ComponentNetworkMap({ components }) {
+// cote API), juste la joignabilite potentielle. Le port affiche sur chaque
+// noeud est celui a utiliser pour LE joindre, lui, depuis n'importe quel autre
+// composant. Seule vue des composants sur la page environnement (voir
+// NamespaceDetail) : cliquer un noeud ouvre ComponentInfoPopup plutot que
+// d'afficher une grille de cartes a cote.
+export default function ComponentNetworkMap({ components, selected, onSelect }) {
   if (components.length === 0) {
     return <p className="text-sm text-slate-500">Aucun composant pour l'instant.</p>;
   }
@@ -53,14 +55,18 @@ export default function ComponentNetworkMap({ components }) {
         {components.map((c, i) => {
           const { icon: Icon, accent } = TYPE_STYLE[c.type] || TYPE_STYLE.custom;
           const pos = positions[i];
+          const isSelected = selected === c.name;
           return (
-            <div
+            <button
               key={c.name}
-              className="absolute flex flex-col items-center gap-1 w-28 -translate-x-1/2 -translate-y-1/2 text-center"
+              onClick={() => onSelect?.(c)}
+              className="absolute flex flex-col items-center gap-1 w-28 -translate-x-1/2 -translate-y-1/2 text-center group"
               style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
             >
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center ring-1 bg-white shadow-sm ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center ring-1 bg-white shadow-sm transition-all duration-150 group-hover:shadow-md group-hover:-translate-y-0.5 ${ACCENT_BG[accent]} ${
+                  isSelected ? "ring-2 ring-slate-900" : ACCENT_RING[accent]
+                }`}
               >
                 <Icon size={16} strokeWidth={2} />
               </div>
@@ -71,7 +77,7 @@ export default function ComponentNetworkMap({ components }) {
               <span className="text-[10px] font-mono font-medium text-slate-700 bg-slate-100 rounded-full px-2 py-0.5">
                 :{c.port}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
