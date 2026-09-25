@@ -47,7 +47,10 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
           )}
         </div>
 
-        <p className="text-xs text-slate-500 font-mono truncate mb-4">{component.image}</p>
+        <p className="text-xs text-slate-500 font-mono truncate mb-1.5">{component.image}</p>
+        <p className="text-xs text-slate-400 font-mono truncate mb-4">
+          {component.serviceHost}:{component.port}
+        </p>
 
         {stats && (
           <div className="flex flex-wrap gap-2 mb-4">
