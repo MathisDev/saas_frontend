@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, ExternalLink, GitBranch, Plus, Globe } from "lucide-react";
+import { Trash2, ExternalLink, Plus, Globe } from "lucide-react";
 import { getNamespace, deleteNamespace, getComponentsSummary, addComponent } from "../api";
 import ComponentList from "../components/ComponentList";
 import ComponentInfoPopup from "../components/ComponentInfoPopup";
@@ -99,17 +99,6 @@ export default function NamespaceDetail() {
           <h1 className="text-xl font-semibold">{ns.name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          {ns.manifestRepoUrl && (
-            <a
-              href={ns.manifestRepoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1.5 text-sm text-slate-600 border border-slate-300 rounded-md px-3 py-1.5 hover:bg-slate-50 transition"
-            >
-              <GitBranch size={14} />
-              Dépôt de manifests
-            </a>
-          )}
           {ns.grafanaDashboardUrl && (
             <a
               href={ns.grafanaDashboardUrl}

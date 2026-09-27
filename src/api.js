@@ -137,6 +137,15 @@ export async function addComponent(name, component) {
   return data;
 }
 
+// updateComponent reconfigure un composant déjà provisionné - patch ne contient
+// que les champs à changer (image/port/replicas/env/expose), les autres gardent
+// leur valeur actuelle côté API. Seule façon de reconfigurer un composant : plus
+// de dépôt de manifests Kubernetes accessible au client (voir API.md).
+export async function updateComponent(name, componentName, patch) {
+  const { data } = await api.patch(`/namespaces/${name}/components/${componentName}`, patch);
+  return data;
+}
+
 
 export async function listPods(name) {
   const { data } = await api.get(`/namespaces/${name}/pods`);
