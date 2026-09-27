@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, ChevronRight } from "lucide-react";
 import { listNamespaces } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 const STATUS_STYLES = {
   Active: "bg-green-100 text-green-700",
@@ -24,9 +25,14 @@ function StatusPill({ status }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { me } = useAuth();
   const [namespaces, setNamespaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Un compte free n'a droit qu'à un seul namespace (voir NamespaceHandler.Create
+  // côté API) - passer en pro pour en créer plus.
+  const atFreeNamespaceLimit = me?.tier !== "pro" && namespaces.length >= 1;
 
   async function load() {
     try {
@@ -53,14 +59,30 @@ export default function Dashboard() {
             {namespaces.length} environnement{namespaces.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <Link
-          to="/new"
-          className="flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-slate-800 transition"
-        >
-          <Plus size={16} />
-          Nouveau
-        </Link>
+        {atFreeNamespaceLimit ? (
+          <span
+            title="Un compte free est limité à un seul environnement - passe en pro pour en créer plus."
+            className="flex items-center gap-1.5 bg-slate-100 text-slate-400 text-sm font-medium px-4 py-2 rounded-md cursor-not-allowed"
+          >
+            <Plus size={16} />
+            Nouveau
+          </span>
+        ) : (
+          <Link
+            to="/new"
+            className="flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-slate-800 transition"
+          >
+            <Plus size={16} />
+            Nouveau
+          </Link>
+        )}
       </div>
+
+      {atFreeNamespaceLimit && (
+        <p className="text-xs text-slate-400">
+          Compte free limité à un seul environnement - passe en pro pour en créer plus.
+        </p>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement...</p>}
