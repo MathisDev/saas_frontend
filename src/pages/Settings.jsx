@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { KeyRound, RefreshCw, Copy, Check, Lock, Bot, Download } from "lucide-react";
+import { KeyRound, RefreshCw, Copy, Check, Lock, Bot, Download, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { regenerateApiKey, setPassword as setPasswordRequest, getAIManifest } from "../api";
+import {
+  regenerateApiKey,
+  setPassword as setPasswordRequest,
+  getAIManifest,
+  enableTwoFactor,
+  disableTwoFactor,
+} from "../api";
 import Breadcrumb from "../components/Breadcrumb";
 
 export default function Settings() {
-  const { me, credentialType, loginWithApiKey } = useAuth();
+  const { me, credentialType, loginWithApiKey, refreshMe } = useAuth();
   const [newKey, setNewKey] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -15,6 +21,11 @@ export default function Settings() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSaved, setPasswordSaved] = useState(false);
+
+  const [twoFactorFormOpen, setTwoFactorFormOpen] = useState(false);
+  const [twoFactorPassword, setTwoFactorPassword] = useState("");
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState("");
 
   const [manifest, setManifest] = useState(null);
   const [manifestLoading, setManifestLoading] = useState(false);
@@ -96,6 +107,26 @@ export default function Settings() {
     }
   }
 
+  async function submitTwoFactorToggle(e) {
+    e.preventDefault();
+    setTwoFactorError("");
+    setTwoFactorLoading(true);
+    try {
+      if (me?.twoFactorEnabled) {
+        await disableTwoFactor(twoFactorPassword);
+      } else {
+        await enableTwoFactor(twoFactorPassword);
+      }
+      setTwoFactorPassword("");
+      setTwoFactorFormOpen(false);
+      await refreshMe();
+    } catch (err) {
+      setTwoFactorError(err.response?.data?.error || "Erreur lors de la mise à jour");
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
@@ -155,6 +186,68 @@ export default function Settings() {
             {passwordLoading ? "..." : "Mettre à jour"}
           </button>
         </form>
+      </div>
+
+      <div className="bg-white rounded-xl shadow p-5">
+        <h2 className="text-sm font-semibold mb-1">Double authentification</h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Un code à 6 chiffres envoyé par email est exigé en plus du mot de passe pour te connecter
+          sur la page de connexion (n'affecte pas l'authentification par clé API).
+        </p>
+
+        <div className="flex items-center justify-between bg-slate-50 rounded-md px-4 py-3 mb-4">
+          <div className="flex items-center gap-2.5 text-sm">
+            <ShieldCheck size={16} className={me?.twoFactorEnabled ? "text-emerald-600" : "text-slate-400"} />
+            <span>{me?.twoFactorEnabled ? "Activée" : "Désactivée"}</span>
+          </div>
+        </div>
+
+        {twoFactorFormOpen ? (
+          <form onSubmit={submitTwoFactorToggle} className="space-y-3">
+            <input
+              type="password"
+              required
+              autoFocus
+              placeholder="Mot de passe actuel"
+              value={twoFactorPassword}
+              onChange={(e) => setTwoFactorPassword(e.target.value)}
+              className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
+            />
+            {twoFactorError && <p className="text-sm text-red-600">{twoFactorError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={twoFactorLoading}
+                className="flex items-center gap-1.5 text-sm text-white bg-slate-900 rounded-md px-3 py-1.5 hover:bg-slate-800 transition disabled:opacity-50"
+              >
+                {twoFactorLoading
+                  ? "..."
+                  : me?.twoFactorEnabled
+                    ? "Confirmer la désactivation"
+                    : "Confirmer l'activation"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTwoFactorFormOpen(false);
+                  setTwoFactorPassword("");
+                  setTwoFactorError("");
+                }}
+                className="text-sm text-slate-500 px-3 py-1.5"
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setTwoFactorFormOpen(true)}
+            className="flex items-center gap-1.5 text-sm text-slate-700 border border-slate-300 rounded-md px-3 py-1.5 hover:bg-slate-50 transition"
+          >
+            <ShieldCheck size={14} />
+            {me?.twoFactorEnabled ? "Désactiver" : "Activer"}
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow p-5">

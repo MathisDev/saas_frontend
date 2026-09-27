@@ -63,9 +63,31 @@ export async function adminUpdateSettings(registrationEnabled) {
   return data;
 }
 
+// login renvoie soit {token, ...} (connexion directe), soit
+// {twoFactorRequired: true, email} si le compte a activé le 2FA (voir
+// verifyTwoFactor) - à l'appelant de distinguer les deux formes.
 export async function login(email, password) {
   const { data } = await api.post("/auth/login", { email, password });
   return data;
+}
+
+// verifyTwoFactor finalise une connexion démarrée par login() quand la
+// réponse contenait twoFactorRequired - renvoie la même forme que login()
+// sans 2FA ({token, ...}).
+export async function verifyTwoFactor(email, code) {
+  const { data } = await api.post("/auth/login/verify-2fa", { email, code });
+  return data;
+}
+
+// enableTwoFactor/disableTwoFactor activent ou désactivent le 2FA sur la
+// connexion email/mot de passe (voir Paramètres) - le mot de passe actuel est
+// exigé dans les deux cas.
+export async function enableTwoFactor(password) {
+  await api.post("/me/2fa/enable", { password });
+}
+
+export async function disableTwoFactor(password) {
+  await api.post("/me/2fa/disable", { password });
 }
 
 export async function registerClient(email, password) {

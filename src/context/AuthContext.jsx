@@ -22,6 +22,19 @@ export function AuthProvider({ children }) {
   });
   const [me, setMe] = useState(null);
 
+  // refreshMe recharge /me sans changer de credential - utilisé après une action
+  // qui modifie le compte affiché sur la page Paramètres (2FA activé/désactivé,
+  // etc.) sans nécessiter une reconnexion.
+  function refreshMe() {
+    if (!credential) return Promise.resolve(null);
+    return getMe()
+      .then((data) => {
+        setMe(data);
+        return data;
+      })
+      .catch(() => null);
+  }
+
   useEffect(() => {
     if (credential) {
       getMe()
@@ -63,6 +76,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(credential),
         credentialType: credential?.type ?? null,
         me,
+        refreshMe,
         isAdmin: Boolean(me?.isAdmin),
         login,
         loginWithApiKey,

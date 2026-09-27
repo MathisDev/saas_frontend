@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   login as loginRequest,
+  verifyTwoFactor,
   registerClient,
   verifyRegistration,
   resendVerificationCode,
@@ -12,7 +13,7 @@ export default function Login() {
   const { login, loginWithApiKey } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState("login"); // "login" | "register" | "verify" | "key"
+  const [mode, setMode] = useState("login"); // "login" | "register" | "verify" | "login-2fa" | "key"
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,10 +32,30 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await loginRequest(email.trim(), password);
+      if (res.twoFactorRequired) {
+        setCode("");
+        setMode("login-2fa");
+        return;
+      }
       login(res.token);
       navigate("/");
     } catch (err) {
       setError(err.response?.data?.error || "Email ou mot de passe invalide");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitLoginTwoFactor(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await verifyTwoFactor(email.trim(), code.trim());
+      login(res.token);
+      navigate("/");
+    } catch (err) {
+      setError(err.response?.data?.error || "Code invalide");
     } finally {
       setLoading(false);
     }
@@ -231,6 +252,45 @@ export default function Login() {
                   className="w-full text-xs text-slate-500 hover:text-slate-700"
                 >
                   Renvoyer le code
+                </button>
+              </form>
+            )}
+
+            {mode === "login-2fa" && (
+              <form onSubmit={submitLoginTwoFactor} className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Double authentification activée sur ce compte : un code à 6 chiffres a été
+                  envoyé à <strong>{email.trim()}</strong>. Il expire dans 15 minutes.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  required
+                  maxLength={6}
+                  placeholder="123456"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm text-center tracking-[0.5em]"
+                />
+                {error && <p className="text-sm text-red-600">{error}</p>}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-slate-900 text-white rounded-md py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  {loading ? "..." : "Valider le code"}
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => {
+                    setMode("login");
+                    setError("");
+                  }}
+                  className="w-full text-xs text-slate-500 hover:text-slate-700"
+                >
+                  Retour
                 </button>
               </form>
             )}
