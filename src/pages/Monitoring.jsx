@@ -70,6 +70,10 @@ export default function Monitoring() {
 
   const dashboardUrl = isAdmin ? selectedClient?.grafanaDashboardUrl : me?.grafanaDashboardUrl;
   const dashboardLabel = isAdmin ? selectedClient?.clientSlug : me?.slug;
+  // Test temporaire : pointe l'iframe vers la racine de Grafana (pas le
+  // dashboard précis) pour vérifier que le relais de session (voir GET /me
+  // côté API) authentifie bien le navigateur avant même d'ouvrir un dashboard.
+  const grafanaBaseUrl = dashboardUrl ? new URL(dashboardUrl).origin : null;
 
   return (
     <div className="space-y-4 md:h-full flex flex-col">
@@ -118,7 +122,7 @@ export default function Monitoring() {
           <iframe
             key={dashboardLabel}
             title={`Dashboard Grafana - ${dashboardLabel}`}
-            src={`${dashboardUrl}${dashboardUrl.includes("?") ? "&" : "?"}kiosk=tv&theme=light`}
+            src={grafanaBaseUrl}
             className="w-full h-full min-h-[70dvh] md:min-h-[600px] border-0"
           />
         </div>
