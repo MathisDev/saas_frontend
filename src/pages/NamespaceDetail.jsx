@@ -6,6 +6,7 @@ import ComponentList from "../components/ComponentList";
 import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import GeneratedPasswords from "../components/GeneratedPasswords";
 import { APP_VERSION } from "../version";
 import { TYPE_GROUPS, DATABASE_TYPES, TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 
@@ -28,6 +29,9 @@ export default function NamespaceDetail() {
   const [newComponent, setNewComponent] = useState(emptyNewComponent());
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
+  // addedSecrets : composant base de données tout juste ajouté dont l'API a généré le
+  // mot de passe - renvoyé une seule fois (voir GeneratedPasswords).
+  const [addedSecrets, setAddedSecrets] = useState([]);
 
   async function load() {
     try {
@@ -68,12 +72,13 @@ export default function NamespaceDetail() {
     setAddError("");
     setAddLoading(true);
     try {
-      await addComponent(name, {
+      const created = await addComponent(name, {
         name: newComponent.name.trim(),
         type: newComponent.type,
         expose: newComponent.expose,
         ...(newComponent.type === "custom" && newComponent.image ? { image: newComponent.image } : {}),
       });
+      setAddedSecrets(created.generatedPassword ? [created] : []);
       setNewComponent(emptyNewComponent());
       setShowAddComponent(false);
       load();
@@ -270,6 +275,19 @@ export default function NamespaceDetail() {
               </div>
             </div>
           </form>
+        )}
+
+        {addedSecrets.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <GeneratedPasswords components={addedSecrets} />
+            <button
+              type="button"
+              onClick={() => setAddedSecrets([])}
+              className="text-xs text-slate-500 hover:text-slate-700"
+            >
+              J'ai copié le mot de passe
+            </button>
+          </div>
         )}
 
         <div className="mt-4">

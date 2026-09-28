@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Globe, Loader2, Check, Box } from "lucide-react";
 import { createNamespace } from "../api";
 import Breadcrumb from "../components/Breadcrumb";
+import GeneratedPasswords from "../components/GeneratedPasswords";
 import { TYPE_GROUPS, DATABASE_TYPES, TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 
 function emptyComponent() {
@@ -10,20 +11,22 @@ function emptyComponent() {
 }
 
 // CREATION_STEPS reflète l'ordre réel de NamespaceHandler.Create côté API
-// (handlers/namespaces.go) : génération des manifests, dépôts GitLab
-// (composants + manifests), push gitops, dashboard Grafana. La création est un
-// unique appel bloquant (pas de flux de progression réel depuis le backend) -
-// l'avancement ci-dessous est simulé, plafonné avant la fin tant que la requête
-// n'a pas répondu, pour ne jamais afficher "terminé" avant que ce soit vrai.
+// (handlers/namespaces.go) : génération des manifests, push gitops, puis dépôts
+// GitLab des composants et dashboard Grafana (en parallèle côté API). La création
+// est un unique appel bloquant (pas de flux de progression réel depuis le
+// backend) - l'avancement ci-dessous est simulé, plafonné avant la fin tant que la
+// requête n'a pas répondu, pour ne jamais afficher "terminé" avant que ce soit vrai.
 const CREATION_STEPS = [
   "Validation de la configuration",
   "Génération des manifests Kubernetes",
-  "Provisionnement des dépôts GitLab",
   "Envoi vers le dépôt GitOps",
-  "Mise en place du monitoring",
+  "Dépôts GitLab et monitoring",
 ];
 
-function CreationProgress({ name, step, done }) {
+// secrets : composants dont l'API a généré le mot de passe (base de données créée
+// sans mot de passe fourni) - renvoyés une seule fois, donc pas de redirection
+// automatique tant que le client n'a pas confirmé les avoir copiés.
+function CreationProgress({ name, step, done, secrets, onContinue }) {
   return (
     <div className="modal-backdrop">
       <div className="modal-panel sm:p-6">
@@ -70,7 +73,19 @@ function CreationProgress({ name, step, done }) {
           })}
         </div>
 
-        {done && <p className="text-xs text-slate-400 mt-5">Redirection...</p>}
+        {done && secrets.length > 0 && (
+          <div className="mt-5 space-y-3">
+            <GeneratedPasswords components={secrets} />
+            <button
+              type="button"
+              onClick={onContinue}
+              className="w-full bg-slate-900 text-white text-sm font-medium px-4 py-2.5 sm:py-2 rounded-md"
+            >
+              Continuer
+            </button>
+          </div>
+        )}
+        {done && secrets.length === 0 && <p className="text-xs text-slate-400 mt-5">Redirection...</p>}
       </div>
     </div>
   );
@@ -84,6 +99,7 @@ export default function CreateNamespace() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
+  const [created, setCreated] = useState(null);
 
   // Avance d'une étape simulée à intervalle régulier tant que la requête est en
   // vol, sans jamais atteindre la dernière (réservée à la vraie réponse du
@@ -127,9 +143,13 @@ export default function CreateNamespace() {
           })),
       };
       const res = await createNamespace(payload);
+      const secrets = (res.components || []).filter((c) => c.generatedPassword);
       setStep(CREATION_STEPS.length - 1);
+      setCreated({ name: res.name, secrets });
       setDone(true);
-      setTimeout(() => navigate(`/namespaces/${res.name}`), 700);
+      if (secrets.length === 0) {
+        setTimeout(() => navigate(`/namespaces/${res.name}`), 700);
+      }
     } catch (err) {
       setError(err.response?.data?.error || "Erreur lors de la création");
       setLoading(false);
@@ -281,7 +301,15 @@ export default function CreateNamespace() {
         </div>
       </form>
 
-      {loading && <CreationProgress name={name} step={step} done={done} />}
+      {loading && (
+        <CreationProgress
+          name={name}
+          step={step}
+          done={done}
+          secrets={created?.secrets || []}
+          onContinue={() => navigate(`/namespaces/${created.name}`)}
+        />
+      )}
     </div>
   );
 }

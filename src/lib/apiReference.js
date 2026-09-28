@@ -157,7 +157,8 @@ export const API_REFERENCE = [
       ],
     },
     bodyNotes: [
-      "name : requis, minuscules alphanumériques + tirets - devient le suffixe de ns-<slug-client>-<name>",
+      "name : requis, minuscules alphanumériques + tirets - devient le suffixe de ns-<slug-client>-<name> (63 caractères max au total)",
+      "components[].name : requis, commence par une lettre, minuscules alphanumériques + tirets ; exposé, <name>-<slug-client> doit tenir en 63 caractères",
       `components[].type : requis, une des ${COMPONENT_TYPES_DOC.length} valeurs valides (voir liste ci-dessous)`,
       "components[].image : obligatoire uniquement pour type \"custom\"",
       "components[].expose : jamais autorisé pour un type base de données (postgres, mysql, mssql, mongodb, redis)",
@@ -180,6 +181,7 @@ export const API_REFERENCE = [
     responseNotes: [
       "components[].generatedPassword n'apparaît qu'une fois, si un mot de passe a été auto-généré à la création.",
       "Le provisionnement réel est asynchrone : status passe de Provisioning à Active une fois ArgoCD synchronisé.",
+      "Si l'envoi vers le dépôt GitOps échoue (502), rien n'est créé : la requête peut simplement être relancée.",
     ],
   },
   {
