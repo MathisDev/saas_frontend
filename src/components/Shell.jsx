@@ -31,7 +31,9 @@ export default function Shell({ namespace, pod }) {
     teardown();
     setStatus("connecting");
 
-    const term = new XTerm({ cursorBlink: true, fontSize: 13, convertEol: true });
+    // Police réduite sur téléphone pour garder un nombre de colonnes utilisable.
+    const fontSize = window.matchMedia("(max-width: 639px)").matches ? 11 : 13;
+    const term = new XTerm({ cursorBlink: true, fontSize, convertEol: true });
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(containerRef.current);
@@ -107,11 +109,11 @@ export default function Shell({ namespace, pod }) {
     <div
       className={
         fullscreen
-          ? "fixed inset-0 z-50 bg-slate-950 p-4 flex flex-col"
+          ? "fixed inset-0 z-50 bg-slate-950 p-3 sm:p-4 flex flex-col pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
           : ""
       }
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between gap-2 mb-2">
         <span className={`text-xs ${fullscreen ? "text-slate-400" : "text-slate-500"}`}>
           {statusLabel}
         </span>
@@ -142,8 +144,7 @@ export default function Shell({ namespace, pod }) {
       <div
         ref={containerRef}
         onClick={() => sessionRef.current?.term?.focus()}
-        className={`bg-black rounded-md p-2 ${fullscreen ? "flex-1" : ""}`}
-        style={fullscreen ? undefined : { height: "420px" }}
+        className={`bg-black rounded-md p-2 ${fullscreen ? "flex-1 min-h-0" : "h-[320px] sm:h-[420px]"}`}
       />
     </div>
   );

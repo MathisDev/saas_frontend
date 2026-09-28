@@ -25,8 +25,9 @@ const CREATION_STEPS = [
 
 function CreationProgress({ name, step, done }) {
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+    <div className="modal-backdrop">
+      <div className="modal-panel sm:p-6">
+        <div className="sheet-grabber" />
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
             {done ? <Check size={18} /> : <Box size={18} />}
@@ -140,7 +141,7 @@ export default function CreateNamespace() {
       <Breadcrumb items={[{ label: "Environnements", to: "/" }, { label: "Nouveau" }]} />
       <h1 className="text-xl font-semibold mb-6">Nouvel environnement</h1>
 
-      <form onSubmit={submit} className="space-y-6 bg-white rounded-xl shadow p-6">
+      <form onSubmit={submit} className="space-y-6 bg-white rounded-xl shadow p-4 sm:p-6">
         <div>
           <label className="block text-sm font-medium mb-1">Nom</label>
           <input
@@ -167,21 +168,21 @@ export default function CreateNamespace() {
               return (
                 <div
                   key={i}
-                  className="relative flex gap-3 p-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
+                  className="relative flex gap-3 p-3 sm:p-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
                 >
                   <div
-                    className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ring-1 transition-colors duration-200 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}
+                    className={`hidden sm:flex shrink-0 w-11 h-11 rounded-xl items-center justify-center ring-1 transition-colors duration-200 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}
                   >
                     <Icon size={20} strokeWidth={2} />
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-2.5">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 pr-3 sm:pr-0">
                       <input
                         placeholder="nom du composant"
                         value={c.name}
                         onChange={(e) => updateComponent(i, { name: e.target.value })}
-                        className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                        className="flex-1 basis-40 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
                       />
                       <select
                         value={c.type}
@@ -266,7 +267,7 @@ export default function CreateNamespace() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-md disabled:opacity-50"
+            className="flex-1 sm:flex-none bg-slate-900 text-white text-sm font-medium px-4 py-2.5 sm:py-2 rounded-md disabled:opacity-50"
           >
             {loading ? "Création..." : "Créer"}
           </button>

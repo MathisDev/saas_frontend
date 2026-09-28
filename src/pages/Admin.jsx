@@ -59,7 +59,46 @@ export default function Admin() {
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       {loading && <p className="text-sm text-slate-500">Chargement...</p>}
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="md:hidden space-y-3">
+        {namespaces.map((ns) => (
+          <div key={ns.id} className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link to={`/namespaces/${ns.name}`} className="font-mono font-medium text-sm block truncate">
+                  {ns.name}
+                </Link>
+                <p className="text-xs text-slate-500 truncate mt-0.5">
+                  {ns.clientEmail} <span className="text-slate-400">({ns.clientSlug})</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setTarget(ns)}
+                aria-label="Supprimer"
+                className="shrink-0 text-red-600 active:bg-red-50 rounded-md p-2 -m-1 transition"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
+              <span>{ns.status}</span>
+              <span>
+                {ns.cpu} / {ns.memory}
+              </span>
+              <span>
+                {ns.podsReady}/{ns.podsTotal} pods
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1 truncate">
+              {ns.components?.map((c) => c.name).join(", ") || "—"}
+            </p>
+          </div>
+        ))}
+        {!loading && namespaces.length === 0 && (
+          <p className="text-sm text-slate-500">Aucun environnement sur la plateforme.</p>
+        )}
+      </div>
+
+      <div className="hidden md:block bg-white rounded-xl shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
             <tr>

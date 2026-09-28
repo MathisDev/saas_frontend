@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Play, Search, ArrowRight } from "lucide-react";
+import { Play, Search, ArrowRight, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { runConsoleRequest } from "../api";
 import Breadcrumb from "../components/Breadcrumb";
@@ -111,6 +111,7 @@ export default function Console() {
   const [docSearch, setDocSearch] = useState("");
   const [selectedDoc, setSelectedDoc] = useState(null);
   const textareaRef = useRef(null);
+  const resultRef = useRef(null);
 
   const shortcuts = isAdmin ? [...SHORTCUTS, "GET /admin/namespaces"] : SHORTCUTS;
 
@@ -188,6 +189,10 @@ export default function Console() {
     const res = await runConsoleRequest(block.method, block.path, body);
     setResult({ ...res, method: block.method, path: block.path });
     setRunning(false);
+    // Sur téléphone la réponse est empilée sous l'éditeur, hors écran : on y descend.
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
   }
 
   function handleKeyDown(e) {
@@ -210,7 +215,7 @@ export default function Console() {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="md:h-full flex flex-col space-y-6">
       <div>
         <Breadcrumb items={[{ label: "Environnements", to: "/" }, { label: "Console" }]} />
         <h1 className="text-xl font-semibold">Console API</h1>
@@ -218,11 +223,15 @@ export default function Console() {
           {tab === "essayer" ? (
             <>
               Écris une ou plusieurs requêtes ("METHODE /chemin", corps JSON sur les lignes
-              suivantes). Place le curseur dans une requête et lance-la avec{" "}
-              <kbd className="text-xs bg-slate-100 border border-slate-300 rounded px-1">
-                Ctrl/Cmd + Entrée
-              </kbd>{" "}
-              ou le bouton Exécuter.
+              suivantes). Place le curseur dans une requête et lance-la
+              <span className="hidden md:inline">
+                {" "}avec{" "}
+                <kbd className="text-xs bg-slate-100 border border-slate-300 rounded px-1">
+                  Ctrl/Cmd + Entrée
+                </kbd>{" "}
+                ou
+              </span>{" "}
+              avec le bouton Exécuter.
             </>
           ) : (
             "Référence complète des endpoints de l'API : authentification, paramètres, corps de requête et de réponse."
@@ -250,12 +259,12 @@ export default function Console() {
       </div>
 
       {tab === "essayer" && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
           {shortcuts.map((s) => (
             <button
               key={s}
               onClick={() => insertShortcut(s)}
-              className="text-xs bg-white border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-50 transition font-mono"
+              className="shrink-0 text-xs bg-white border border-slate-200 rounded-full px-3 py-1.5 hover:bg-slate-50 active:bg-slate-100 transition font-mono"
             >
               {s}
             </button>
@@ -264,16 +273,16 @@ export default function Console() {
       )}
 
       {tab === "essayer" && (
-      <div className="grid grid-cols-2 gap-4 flex-1 min-h-[420px]">
-        <div className="bg-white rounded-xl shadow flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
-            <span className="text-xs font-mono text-slate-500">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 lg:min-h-[420px]">
+        <div className="bg-white rounded-xl shadow flex flex-col overflow-hidden min-h-[300px]">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-slate-100">
+            <span className="text-xs font-mono text-slate-500 truncate min-w-0">
               {activeBlock ? `${activeBlock.method} ${activeBlock.path}` : "place le curseur dans une requête"}
             </span>
             <button
               onClick={runActiveBlock}
               disabled={running || !activeBlock}
-              className="flex items-center gap-1.5 bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-slate-800 transition disabled:opacity-40"
+              className="shrink-0 flex items-center gap-1.5 bg-slate-900 text-white text-xs font-medium px-3 py-2 sm:py-1.5 rounded-md hover:bg-slate-800 transition disabled:opacity-40"
             >
               <Play size={12} />
               {running ? "..." : "Exécuter"}
@@ -291,17 +300,17 @@ export default function Console() {
           />
         </div>
 
-        <div className="bg-white rounded-xl shadow flex flex-col overflow-hidden">
+        <div ref={resultRef} className="bg-white rounded-xl shadow flex flex-col overflow-hidden min-h-[260px] max-h-[70dvh] lg:max-h-none scroll-mt-20">
           <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 min-h-[41px]">
             {result && (
               <>
                 <span className={`text-xs font-mono font-medium px-2 py-0.5 rounded ${statusColor(result.status)}`}>
                   {result.status || "erreur réseau"}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-400 font-mono truncate min-w-0">
                   {result.method} {result.path}
                 </span>
-                <span className="text-xs text-slate-400 ml-auto">{result.durationMs} ms</span>
+                <span className="shrink-0 text-xs text-slate-400 ml-auto">{result.durationMs} ms</span>
               </>
             )}
           </div>
@@ -314,7 +323,7 @@ export default function Console() {
       )}
 
       {tab === "docs" && (
-        <div className="flex flex-col flex-1 min-h-[420px] gap-4">
+        <div className="flex flex-col flex-1 md:min-h-[420px] gap-4">
           <div className="space-y-2">
             <div className="relative max-w-md">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -327,14 +336,16 @@ export default function Console() {
             </div>
             <div className="flex flex-wrap gap-3 text-xs text-slate-500 bg-white border border-slate-200 rounded-lg px-3 py-2">
               <span className="font-medium text-slate-700">Authentification :</span>
-              <span><code className="bg-slate-100 rounded px-1">Authorization: Bearer &lt;token&gt;</code> (via POST /auth/login, 7 jours)</span>
+              <span className="break-words"><code className="bg-slate-100 rounded px-1">Authorization: Bearer &lt;token&gt;</code> (via POST /auth/login, 7 jours)</span>
               <span className="text-slate-300">ou</span>
-              <span><code className="bg-slate-100 rounded px-1">X-API-Key: &lt;clé&gt;</code> (n'expire jamais)</span>
+              <span className="break-words"><code className="bg-slate-100 rounded px-1">X-API-Key: &lt;clé&gt;</code> (n'expire jamais)</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-[280px_1fr] gap-4 flex-1 min-h-0">
-            <div className="bg-white rounded-xl shadow overflow-y-auto">
+          {/* Téléphone : maître/détail - la liste OU la doc de l'endpoint choisi,
+              avec un bouton retour ; côte à côte à partir de md. */}
+          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4 flex-1 min-h-0">
+            <div className={`bg-white rounded-xl shadow overflow-y-auto ${selectedDoc ? "hidden md:block" : ""}`}>
               {groupedDocs.length === 0 && (
                 <p className="text-sm text-slate-400 p-4">Aucun endpoint ne correspond à cette recherche.</p>
               )}
@@ -346,8 +357,12 @@ export default function Console() {
                   {g.items.map((d) => (
                     <button
                       key={`${d.method} ${d.path}`}
-                      onClick={() => setSelectedDoc(d)}
-                      className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs transition ${
+                      onClick={() => {
+                        setSelectedDoc(d);
+                        // Téléphone : la doc remplace la liste, on repart du haut.
+                        window.scrollTo({ top: 0 });
+                      }}
+                      className={`w-full flex items-center gap-2 text-left px-3 py-3 md:py-2 text-xs transition active:bg-slate-100 ${
                         selectedDoc === d ? "bg-slate-100" : "hover:bg-slate-50"
                       }`}
                     >
@@ -359,7 +374,7 @@ export default function Console() {
               ))}
             </div>
 
-            <div className="bg-white rounded-xl shadow overflow-y-auto p-5">
+            <div className={`bg-white rounded-xl shadow overflow-y-auto p-4 sm:p-5 ${selectedDoc ? "" : "hidden md:block"}`}>
               {!selectedDoc && (
                 <div className="h-full flex flex-col items-center justify-center text-center text-sm text-slate-400 gap-1">
                   <p>Sélectionne un endpoint à gauche pour voir sa documentation.</p>
@@ -368,9 +383,16 @@ export default function Console() {
               )}
               {selectedDoc && (
                 <div className="space-y-4">
+                  <button
+                    onClick={() => setSelectedDoc(null)}
+                    className="md:hidden flex items-center gap-1.5 text-sm text-slate-500 -mt-1"
+                  >
+                    <ArrowLeft size={14} />
+                    Tous les endpoints
+                  </button>
                   <div className="flex items-center gap-2 flex-wrap">
                     <MethodBadge method={selectedDoc.method} />
-                    <code className="text-sm font-mono font-medium">{selectedDoc.path}</code>
+                    <code className="text-sm font-mono font-medium break-all">{selectedDoc.path}</code>
                     <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${AUTH_STYLE[selectedDoc.auth].className}`}>
                       {AUTH_STYLE[selectedDoc.auth].label}
                     </span>

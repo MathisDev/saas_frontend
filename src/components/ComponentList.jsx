@@ -21,7 +21,7 @@ export default function ComponentList({ components, onSelect }) {
           <button
             key={c.name}
             onClick={() => onSelect?.(c)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white text-left transition hover:border-slate-300 hover:shadow-sm"
+            className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white text-left transition hover:border-slate-300 hover:shadow-sm active:scale-[0.99] active:bg-slate-50"
           >
             <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ring-1 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}>
               <Icon size={18} strokeWidth={2} />
@@ -35,9 +35,12 @@ export default function ComponentList({ components, onSelect }) {
             </div>
 
             {c.url && (
-              <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-600/10">
+              <span
+                title="public"
+                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium p-1 sm:px-2 sm:py-0.5 rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-600/10"
+              >
                 <Wifi size={10} strokeWidth={2.5} />
-                public
+                <span className="hidden sm:inline">public</span>
               </span>
             )}
 
@@ -49,7 +52,7 @@ export default function ComponentList({ components, onSelect }) {
               {c.status} · {c.podsReady}/{c.podsTotal}
             </span>
 
-            <ChevronRight size={16} className="shrink-0 text-slate-300" />
+            <ChevronRight size={16} className="shrink-0 text-slate-300 -ml-1 sm:ml-0" />
           </button>
         );
       })}

@@ -4,4 +4,41 @@
 
 body {
   @apply bg-slate-50 text-slate-900;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS zoome automatiquement sur tout champ dont la police fait moins de 16px -
+   on force 16px sur téléphone plutôt que de toucher chaque text-xs/text-sm. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+@layer components {
+  /* Fond + conteneur des modales : feuille ancrée en bas sur téléphone,
+     carte centrée à partir de sm. */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 animate-fade-in sm:items-center sm:backdrop-blur-[1px] sm:p-4;
+    /* Souvent rendue dans un parent space-y-* qui lui ajouterait un margin-top. */
+    margin: 0 !important;
+  }
+  .modal-panel {
+    @apply w-full bg-white shadow-xl rounded-t-2xl p-5 animate-sheet-up sm:max-w-sm sm:rounded-xl sm:animate-pop-in;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  .sheet-grabber {
+    @apply mx-auto -mt-2 mb-3 h-1 w-10 rounded-full bg-slate-200 sm:hidden;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

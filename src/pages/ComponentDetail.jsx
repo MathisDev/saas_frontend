@@ -154,18 +154,18 @@ export default function ComponentDetail() {
             { label: comp.name },
           ]}
         />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}>
             <Icon size={16} strokeWidth={2} />
           </div>
-          <div>
-            <h1 className="text-xl font-semibold">{comp.name}</h1>
-            <p className="text-xs text-slate-500 font-mono">{comp.image}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold truncate">{comp.name}</h1>
+            <p className="text-xs text-slate-500 font-mono break-all">{comp.image}</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <span
             className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${
@@ -184,8 +184,8 @@ export default function ComponentDetail() {
 
         <div className="flex flex-wrap gap-4 text-xs mb-4">
           {comp.url && (
-            <a href={comp.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sky-600 font-medium">
-              <ExternalLink size={12} />
+            <a href={comp.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sky-600 font-medium min-w-0 break-all">
+              <ExternalLink size={12} className="shrink-0" />
               {comp.url}
             </a>
           )}
@@ -222,7 +222,7 @@ export default function ComponentDetail() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-1">
           <Settings2 size={15} className="text-slate-400" />
           <h2 className="text-sm font-semibold">Configuration</h2>
@@ -232,7 +232,7 @@ export default function ComponentDetail() {
         </p>
 
         <form onSubmit={submitConfig} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_8rem] gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Image</label>
               <input
@@ -255,7 +255,7 @@ export default function ComponentDetail() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Répliques</label>
               <input
@@ -322,7 +322,7 @@ export default function ComponentDetail() {
                   <button
                     type="button"
                     onClick={() => removeEnvRow(i)}
-                    className="shrink-0 text-slate-400 hover:text-red-600 transition"
+                    className="shrink-0 text-slate-400 hover:text-red-600 transition p-1 -m-1"
                     aria-label="Supprimer la variable"
                   >
                     <Trash2 size={14} />
@@ -346,7 +346,7 @@ export default function ComponentDetail() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-md disabled:opacity-50"
+            className="w-full sm:w-auto bg-slate-900 text-white text-sm font-medium px-4 py-2.5 sm:py-2 rounded-md disabled:opacity-50"
           >
             {saving ? "Enregistrement..." : "Enregistrer"}
           </button>
@@ -360,12 +360,12 @@ export default function ComponentDetail() {
       ) : (
         <>
           {pods.length > 1 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
               {pods.map((p) => (
                 <button
                   key={p.name}
                   onClick={() => setSelectedPod(p.name)}
-                  className={`text-xs font-mono px-3 py-1.5 rounded-md border transition ${
+                  className={`shrink-0 text-xs font-mono px-3 py-1.5 rounded-md border transition ${
                     selectedPod === p.name
                       ? "border-slate-900 bg-slate-900 text-white"
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -379,8 +379,8 @@ export default function ComponentDetail() {
 
           {selectedPod && (
             <>
-              <div className="bg-white rounded-xl shadow p-5">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-white rounded-xl shadow p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
                   <h2 className="text-sm font-semibold">
                     Logs
                     <Link to={`/namespaces/${name}/pods/${selectedPod}`} className="ml-2 text-xs text-slate-400 font-normal hover:text-slate-600">
@@ -391,12 +391,12 @@ export default function ComponentDetail() {
                     actualiser
                   </button>
                 </div>
-                <pre className="bg-slate-900 text-slate-100 text-xs rounded-md p-4 overflow-x-auto max-h-72 whitespace-pre-wrap">
+                <pre className="bg-slate-900 text-slate-100 text-[11px] sm:text-xs rounded-md p-3 sm:p-4 overflow-auto max-h-72 whitespace-pre-wrap break-all">
                   {logs}
                 </pre>
               </div>
 
-              <div className="bg-white rounded-xl shadow p-5">
+              <div className="bg-white rounded-xl shadow p-4 sm:p-5">
                 <h2 className="text-sm font-semibold mb-1">Shell</h2>
                 <p className="text-xs text-slate-500 mb-3">
                   Session interactive via WebSocket - vim, top, etc. fonctionnent normalement.

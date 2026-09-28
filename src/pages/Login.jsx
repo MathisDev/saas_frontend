@@ -117,8 +117,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow p-8">
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-sm bg-white rounded-2xl sm:rounded-xl shadow p-6 sm:p-8">
         <h1 className="text-xl font-semibold mb-6">SaaS Platform</h1>
 
         {generatedKey ? (

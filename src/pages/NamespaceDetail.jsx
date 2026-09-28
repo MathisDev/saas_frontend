@@ -93,10 +93,10 @@ export default function NamespaceDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <Breadcrumb items={[{ label: "Environnements", to: "/" }, { label: ns.name }]} />
-          <h1 className="text-xl font-semibold">{ns.name}</h1>
+          <h1 className="text-xl font-semibold truncate">{ns.name}</h1>
         </div>
         <div className="flex items-center gap-2">
           {ns.grafanaDashboardUrl && (
@@ -104,7 +104,7 @@ export default function NamespaceDetail() {
               href={ns.grafanaDashboardUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-sm text-slate-600 border border-slate-300 rounded-md px-3 py-1.5 hover:bg-slate-50 transition"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-slate-600 bg-white border border-slate-300 rounded-md px-3 py-2 sm:py-1.5 hover:bg-slate-50 transition"
             >
               <ExternalLink size={14} />
               Dashboard Grafana
@@ -112,7 +112,7 @@ export default function NamespaceDetail() {
           )}
           <button
             onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-1.5 text-sm text-red-600 border border-red-200 rounded-md px-3 py-1.5 hover:bg-red-50 transition"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-red-600 bg-white border border-red-200 rounded-md px-3 py-2 sm:py-1.5 hover:bg-red-50 transition"
           >
             <Trash2 size={14} />
             Supprimer
@@ -135,12 +135,12 @@ export default function NamespaceDetail() {
         }}
       />
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-3">Quotas</h2>
         <p className="text-xs text-slate-500 mb-3">
           Déterminés par ton abonnement, pas modifiables ici - contacte un admin pour en changer.
         </p>
-        <div className="flex gap-5 items-center text-sm">
+        <div className="flex flex-wrap gap-x-5 gap-y-1 items-center text-sm">
           <span>
             <span className="text-slate-500">CPU </span>
             <span className="font-medium">{ns.cpu}</span>
@@ -155,25 +155,26 @@ export default function NamespaceDetail() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
           <h2 className="text-sm font-semibold">Composants</h2>
           <button
             onClick={() => setShowAddComponent((v) => !v)}
             className="flex items-center gap-1.5 text-sm text-slate-600 border border-slate-300 rounded-md px-3 py-1.5 hover:bg-slate-50 transition"
           >
             <Plus size={14} />
-            Ajouter un composant
+            <span className="sm:hidden">Ajouter</span>
+            <span className="hidden sm:inline">Ajouter un composant</span>
           </button>
         </div>
 
         {showAddComponent && (
           <form
             onSubmit={handleAddComponent}
-            className="mt-4 flex gap-3 p-4 rounded-2xl border border-slate-200 bg-slate-50"
+            className="mt-4 flex gap-3 p-3 sm:p-4 rounded-2xl border border-slate-200 bg-slate-50"
           >
             <div
-              className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ring-1 ${
+              className={`hidden sm:flex shrink-0 w-11 h-11 rounded-xl items-center justify-center ring-1 ${
                 ACCENT_BG[(TYPE_STYLE[newComponent.type] || TYPE_STYLE.custom).accent]
               } ${ACCENT_RING[(TYPE_STYLE[newComponent.type] || TYPE_STYLE.custom).accent]}`}
             >
@@ -184,13 +185,13 @@ export default function NamespaceDetail() {
             </div>
 
             <div className="flex-1 min-w-0 space-y-2.5">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <input
                   required
                   placeholder="nom du composant"
                   value={newComponent.name}
                   onChange={(e) => setNewComponent((c) => ({ ...c, name: e.target.value }))}
-                  className="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                  className="flex-1 basis-40 min-w-0 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
                 />
                 <select
                   value={newComponent.type}
@@ -251,7 +252,7 @@ export default function NamespaceDetail() {
                 <button
                   type="submit"
                   disabled={addLoading}
-                  className="bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-md disabled:opacity-50"
+                  className="flex-1 sm:flex-none bg-slate-900 text-white text-sm sm:text-xs font-medium px-3 py-2 sm:py-1.5 rounded-md disabled:opacity-50"
                 >
                   {addLoading ? "Ajout..." : "Ajouter"}
                 </button>
@@ -262,7 +263,7 @@ export default function NamespaceDetail() {
                     setNewComponent(emptyNewComponent());
                     setAddError("");
                   }}
-                  className="text-xs text-slate-500 px-3 py-1.5"
+                  className="text-sm sm:text-xs text-slate-500 px-3 py-2 sm:py-1.5"
                 >
                   Annuler
                 </button>

@@ -134,23 +134,23 @@ export default function Settings() {
         <h1 className="text-xl font-semibold">Paramètres</h1>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-3">Compte</h2>
         <dl className="text-sm space-y-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Email</dt>
-            <dd>{me?.email}</dd>
+            <dd className="min-w-0 truncate">{me?.email}</dd>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Slug</dt>
             <dd className="font-mono">{me?.slug}</dd>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Tier</dt>
             <dd className="capitalize">{me?.tier}</dd>
           </div>
           {me?.isAdmin && (
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
               <dt className="text-slate-500">Rôle</dt>
               <dd>Admin</dd>
             </div>
@@ -158,7 +158,7 @@ export default function Settings() {
         </dl>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-1">Mot de passe</h2>
         <p className="text-xs text-slate-500 mb-4">
           Utilisé pour te connecter avec ton email sur la page de connexion, à la place de la
@@ -188,7 +188,7 @@ export default function Settings() {
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-1">Double authentification</h2>
         <p className="text-xs text-slate-500 mb-4">
           Un code à 6 chiffres envoyé par email est exigé en plus du mot de passe pour te connecter
@@ -250,7 +250,7 @@ export default function Settings() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-1">Clé API</h2>
         <p className="text-xs text-slate-500 mb-4">
           La clé brute n'est jamais stockée - seule son empreinte l'est, donc elle ne peut être
@@ -276,9 +276,9 @@ export default function Settings() {
           </div>
         ) : (
           <div className="flex items-center justify-between bg-slate-50 rounded-md px-4 py-3">
-            <div className="flex items-center gap-2.5 text-sm">
-              <KeyRound size={16} className="text-slate-400" />
-              <span className="font-mono">
+            <div className="flex items-center gap-2.5 text-sm min-w-0">
+              <KeyRound size={16} className="text-slate-400 shrink-0" />
+              <span className="font-mono truncate">
                 {me?.keyPrefix ? `${me.keyPrefix}${"•".repeat(24)}` : "aucune clé active"}
               </span>
             </div>
@@ -297,7 +297,7 @@ export default function Settings() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-1">Manifest pour IA</h2>
         <p className="text-xs text-slate-500 mb-4">
           Génère un document Markdown auto-suffisant (authentification, endpoints, conventions de
@@ -314,7 +314,7 @@ export default function Settings() {
             <pre className="bg-slate-900 text-slate-100 rounded-md p-3 text-xs max-h-64 overflow-y-auto whitespace-pre-wrap">
               {manifest}
             </pre>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={copyManifest}
                 className="flex items-center gap-1.5 text-sm text-slate-700 border border-slate-300 rounded-md px-3 py-1.5 hover:bg-slate-50 transition"

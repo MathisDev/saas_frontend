@@ -34,12 +34,13 @@ export default function ConfirmDeleteModal({
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center z-50 p-4"
+      className="modal-backdrop"
       onClick={(e) => e.target === e.currentTarget && !loading && onCancel()}
     >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-2.5">
+      <div className="modal-panel">
+        <div className="sheet-grabber" />
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
               <AlertTriangle size={18} />
             </div>
@@ -48,7 +49,8 @@ export default function ConfirmDeleteModal({
           <button
             onClick={onCancel}
             disabled={loading}
-            className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40"
+            aria-label="Fermer"
+            className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40 -m-2 p-2"
           >
             <X size={16} />
           </button>
@@ -59,7 +61,7 @@ export default function ConfirmDeleteModal({
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="block text-xs text-slate-500 mb-1">
-              {confirmLabel} : <span className="font-mono font-semibold text-slate-700">{confirmText}</span>
+              {confirmLabel} : <span className="font-mono font-semibold text-slate-700 break-all">{confirmText}</span>
             </label>
             <input
               autoFocus
@@ -73,11 +75,11 @@ export default function ConfirmDeleteModal({
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
             <button
               type="submit"
               disabled={!matches || loading}
-              className="flex-1 bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-red-700 transition disabled:opacity-40 disabled:hover:bg-red-600"
+              className="flex-1 bg-red-600 text-white text-sm font-medium px-4 py-3 sm:py-2 rounded-lg sm:rounded-md hover:bg-red-700 transition disabled:opacity-40 disabled:hover:bg-red-600"
             >
               {loading ? "Suppression..." : actionLabel}
             </button>
@@ -85,7 +87,7 @@ export default function ConfirmDeleteModal({
               type="button"
               onClick={onCancel}
               disabled={loading}
-              className="text-sm text-slate-500 px-4 py-2 hover:bg-slate-50 rounded-md transition disabled:opacity-40"
+              className="text-sm text-slate-500 px-4 py-3 sm:py-2 hover:bg-slate-50 rounded-lg sm:rounded-md transition disabled:opacity-40"
             >
               Annuler
             </button>

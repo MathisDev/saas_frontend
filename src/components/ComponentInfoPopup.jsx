@@ -12,10 +12,11 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-[1px] flex items-center justify-center z-50 p-4"
+      className="modal-backdrop"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+      <div className="modal-panel">
+        <div className="sheet-grabber" />
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}>
@@ -26,12 +27,12 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
               <p className="text-sm font-semibold text-slate-900 truncate">{component.name}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition shrink-0">
+          <button onClick={onClose} aria-label="Fermer" className="text-slate-400 hover:text-slate-600 transition shrink-0 -m-2 p-2">
             <X size={16} />
           </button>
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
           <span
             className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${
               STATUS_STYLE[component.status] || "bg-slate-100 text-slate-600 ring-slate-600/10"
@@ -90,7 +91,7 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
 
         <Link
           to={`/namespaces/${namespace}/components/${component.name}`}
-          className="flex items-center justify-center gap-1.5 w-full bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-slate-800 transition"
+          className="flex items-center justify-center gap-1.5 w-full bg-slate-900 text-white text-sm font-medium px-4 py-3 sm:py-2 rounded-lg sm:rounded-md hover:bg-slate-800 active:bg-slate-800 transition"
         >
           Détails
           <ArrowRight size={14} />

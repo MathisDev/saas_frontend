@@ -234,7 +234,7 @@ export default function Organisation() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5 mb-4 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5 mb-4 flex items-center justify-between gap-4">
         <div>
           <h2 className="text-sm font-semibold">Inscriptions ouvertes</h2>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -256,7 +256,7 @@ export default function Organisation() {
             Nouveau mot de passe pour {resetResult.email} — copie-le maintenant, il ne sera plus jamais affiché :
           </p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 block bg-white rounded p-3 text-xs break-all">{resetResult.password}</code>
+            <code className="flex-1 min-w-0 block bg-white rounded p-3 text-xs break-all">{resetResult.password}</code>
             <button
               onClick={copyPassword}
               className="shrink-0 p-3 border border-amber-300 rounded-md hover:bg-amber-100 transition"
@@ -276,8 +276,8 @@ export default function Organisation() {
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-      <div className="flex items-center gap-3 mb-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3 mb-3">
+        <div className="relative flex-1 basis-60 sm:max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={search}
@@ -300,7 +300,119 @@ export default function Organisation() {
 
       {loading && <p className="text-sm text-slate-500">Chargement...</p>}
 
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="md:hidden space-y-3">
+        {filtered.length > 0 && (
+          <label className="flex items-center gap-2 px-1 text-xs text-slate-500">
+            <input
+              type="checkbox"
+              checked={allFilteredSelected}
+              onChange={toggleSelectAll}
+              className="rounded border-slate-300 w-4 h-4"
+            />
+            Tout sélectionner
+          </label>
+        )}
+        {filtered.map((client) => {
+          const isSelf = client.clientId === me?.clientId;
+          const isBusy = busyId === client.clientId;
+          return (
+            <div
+              key={client.clientId}
+              className={`rounded-2xl shadow-sm ring-1 p-4 ${
+                selected.has(client.clientId) ? "bg-slate-50 ring-slate-900/30" : "bg-white ring-slate-200/70"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={selected.has(client.clientId)}
+                  onChange={() => toggleSelected(client.clientId)}
+                  disabled={isSelf}
+                  className="rounded border-slate-300 w-4 h-4 mt-0.5"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm font-medium truncate ${client.suspended ? "text-slate-400 line-through decoration-slate-300" : ""}`}>
+                    {client.email}
+                  </p>
+                  <p className="text-slate-400 font-mono text-xs truncate">{client.slug}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    {client.isAdmin && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-700 bg-violet-50 rounded-full px-2 py-0.5">
+                        <ShieldCheck size={11} />
+                        Admin
+                      </span>
+                    )}
+                    {client.suspended && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100 rounded-full px-2 py-0.5">
+                        <UserX size={11} />
+                        Suspendu
+                      </span>
+                    )}
+                    <span className="text-[11px] text-slate-500">
+                      {client.namespaceCount} env. · {formatDate(client.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center gap-3">
+                  {client.isAdmin ? (
+                    <span className="text-sm capitalize">{client.tier}</span>
+                  ) : (
+                    <select
+                      value={client.tier}
+                      onChange={(e) => handleTierChange(client, e.target.value)}
+                      disabled={isBusy}
+                      className="border border-slate-200 rounded-md px-2 py-1 text-sm capitalize bg-white disabled:opacity-50"
+                    >
+                      <option value="free">free</option>
+                      <option value="pro">pro</option>
+                    </select>
+                  )}
+                  <span className="flex items-center gap-2 text-xs text-slate-500">
+                    <Toggle
+                      on={!client.suspended}
+                      onClick={() => handleToggleSuspend(client)}
+                      disabled={isSelf || isBusy}
+                      title={isSelf ? "Impossible de te suspendre toi-même" : client.suspended ? "Réactiver" : "Suspendre"}
+                    />
+                    Accès
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleResetPassword(client)}
+                    disabled={isBusy}
+                    aria-label="Réinitialiser le mot de passe"
+                    className="text-slate-500 active:bg-slate-100 rounded-md p-2 transition disabled:opacity-40"
+                  >
+                    <KeyRound size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDeleteError("");
+                      setDeleteTarget(client);
+                    }}
+                    disabled={isSelf || isBusy}
+                    aria-label="Supprimer"
+                    className="text-red-600 active:bg-red-50 rounded-md p-2 transition disabled:opacity-30"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {!loading && filtered.length === 0 && (
+          <p className="text-sm text-slate-500">
+            {clients.length === 0 ? "Aucun client sur la plateforme." : "Aucun client ne correspond à cette recherche."}
+          </p>
+        )}
+      </div>
+
+      <div className="hidden md:block bg-white rounded-xl shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
             <tr>

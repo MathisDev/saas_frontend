@@ -52,7 +52,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Environnements</h1>
           <p className="text-sm text-slate-500 mt-0.5">
@@ -88,7 +88,7 @@ export default function Dashboard() {
       {loading && <p className="text-sm text-slate-500">Chargement...</p>}
 
       {!loading && namespaces.length === 0 && (
-        <div className="bg-white rounded-xl shadow p-10 text-center">
+        <div className="bg-white rounded-xl shadow p-8 md:p-10 text-center">
           <p className="text-sm text-slate-500">
             Aucun environnement pour l'instant.
           </p>
@@ -99,7 +99,45 @@ export default function Dashboard() {
       )}
 
       {namespaces.length > 0 && (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="md:hidden space-y-3">
+          {namespaces.map((ns) => (
+            <Link
+              key={ns.id}
+              to={`/namespaces/${ns.name}`}
+              className="block bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/70 p-4 active:scale-[0.99] active:bg-slate-50 transition"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-slate-900 truncate">{ns.name}</p>
+                <div className="flex items-center gap-1 shrink-0">
+                  <StatusPill status={ns.status} />
+                  <ChevronRight size={16} className="text-slate-300" />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
+                <span className="capitalize">{ns.tier}</span>
+                <span>
+                  {ns.cpu} CPU / {ns.memory}
+                </span>
+                <span>
+                  {ns.podsReady}/{ns.podsTotal} pods
+                </span>
+              </div>
+              {ns.components?.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap mt-3">
+                  {ns.components.map((c) => (
+                    <span key={c.name} className="text-xs bg-slate-100 rounded px-2 py-0.5">
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {namespaces.length > 0 && (
+        <div className="hidden md:block bg-white rounded-xl shadow overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-500 uppercase">
               <tr>

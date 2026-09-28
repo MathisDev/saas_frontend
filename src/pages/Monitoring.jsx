@@ -72,7 +72,7 @@ export default function Monitoring() {
   const dashboardLabel = isAdmin ? selectedClient?.clientSlug : me?.slug;
 
   return (
-    <div className="space-y-4 h-full flex flex-col">
+    <div className="space-y-4 md:h-full flex flex-col">
       <div>
         <Breadcrumb items={[{ label: "Environnements", to: "/" }, { label: "Monitoring" }]} />
         <h1 className="text-xl font-semibold">Monitoring</h1>
@@ -85,11 +85,11 @@ export default function Monitoring() {
       )}
 
       {isAdmin && clients.length > 1 && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <select
             value={selectedSlug}
             onChange={(e) => setSearchParams(e.target.value ? { client: e.target.value } : {})}
-            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm min-w-[280px]"
+            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm w-full sm:w-auto sm:min-w-[280px] bg-white"
           >
             <option value="">Sélectionner un client...</option>
             {filteredClients.map((cl) => (
@@ -102,7 +102,7 @@ export default function Monitoring() {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="filtrer par nom ou email client..."
-            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm flex-1"
+            className="border border-slate-300 rounded-md px-3 py-1.5 text-sm sm:flex-1"
           />
         </div>
       )}
@@ -114,12 +114,12 @@ export default function Monitoring() {
       )}
 
       {dashboardUrl && (
-        <div className="bg-white rounded-xl shadow flex-1 min-h-[600px] overflow-hidden">
+        <div className="bg-white shadow flex-1 min-h-[70dvh] md:min-h-[600px] overflow-hidden -mx-4 sm:mx-0 sm:rounded-xl">
           <iframe
             key={dashboardLabel}
             title={`Dashboard Grafana - ${dashboardLabel}`}
             src={`${dashboardUrl}${dashboardUrl.includes("?") ? "&" : "?"}kiosk=tv&theme=light`}
-            className="w-full h-full min-h-[600px] border-0"
+            className="w-full h-full min-h-[70dvh] md:min-h-[600px] border-0"
           />
         </div>
       )}

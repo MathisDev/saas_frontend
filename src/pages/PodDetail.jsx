@@ -51,22 +51,22 @@ export default function PodDetail() {
             { label: pod },
           ]}
         />
-        <h1 className="text-xl font-semibold font-mono">{pod}</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-lg sm:text-xl font-semibold font-mono break-all">{pod}</h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-1 break-words">
           {detail.phase} · nœud {detail.node} · IP {detail.podIp} · démarré {detail.startTime}
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-3">Specs des conteneurs</h2>
         <div className="space-y-3">
           {detail.containers.map((c) => (
             <div key={c.name} className="border border-slate-100 rounded-md p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <p className="font-medium">{c.name}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium truncate">{c.name}</p>
                 <span className={c.ready ? "text-green-600" : "text-amber-600"}>{c.state}</span>
               </div>
-              <p className="text-xs text-slate-500 mt-1 font-mono">{c.image}</p>
+              <p className="text-xs text-slate-500 mt-1 font-mono break-all">{c.image}</p>
               <p className="text-xs text-slate-500 mt-1">
                 requests {c.requestsCpu} / {c.requestsMemory} · limits {c.limitsCpu} / {c.limitsMemory} ·{" "}
                 {c.restartCount} restarts
@@ -76,19 +76,19 @@ export default function PodDetail() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold">Logs</h2>
           <button onClick={loadLogs} className="text-xs text-slate-500">
             actualiser
           </button>
         </div>
-        <pre className="bg-slate-900 text-slate-100 text-xs rounded-md p-4 overflow-x-auto max-h-72 whitespace-pre-wrap">
+        <pre className="bg-slate-900 text-slate-100 text-[11px] sm:text-xs rounded-md p-3 sm:p-4 overflow-auto max-h-72 whitespace-pre-wrap break-all">
           {logs}
         </pre>
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-1">Shell</h2>
         <p className="text-xs text-slate-500 mb-3">
           Session interactive via WebSocket - vim, top, etc. fonctionnent normalement.
