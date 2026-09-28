@@ -118,7 +118,7 @@ export default function Monitoring() {
           <iframe
             key={dashboardLabel}
             title={`Dashboard Grafana - ${dashboardLabel}`}
-            src={`${dashboardUrl}?kiosk=tv&theme=light`}
+            src={`${dashboardUrl}${dashboardUrl.includes("?") ? "&" : "?"}kiosk=tv&theme=light`}
             className="w-full h-full min-h-[600px] border-0"
           />
         </div>
