@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, ExternalLink, Plus, Globe } from "lucide-react";
-import { getNamespace, deleteNamespace, getComponentsSummary, addComponent } from "../api";
+import { Trash2, ExternalLink, Plus, Globe, RefreshCw } from "lucide-react";
+import { getNamespace, deleteNamespace, getComponentsSummary, addComponent, refreshNamespace } from "../api";
 import ComponentList from "../components/ComponentList";
 import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
@@ -32,6 +32,8 @@ export default function NamespaceDetail() {
   // addedSecrets : composant base de données tout juste ajouté dont l'API a généré le
   // mot de passe - renvoyé une seule fois (voir GeneratedPasswords).
   const [addedSecrets, setAddedSecrets] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState("");
 
   async function load() {
     try {
@@ -64,6 +66,24 @@ export default function NamespaceDetail() {
       setDeleteError(err.response?.data?.error || "Échec de la suppression");
     } finally {
       setDeleteLoading(false);
+    }
+  }
+
+  // handleRefresh demande à ArgoCD de resynchroniser immédiatement cet environnement
+  // (voir handlers.NamespaceHandler.Refresh) - utile après un déploiement via la
+  // pipeline CI/CD d'un composant, ou en cas de doute ; sans effet visible si tout
+  // est déjà synchronisé (ArgoCD resynchronise de toute façon en continu). 429 si un
+  // refresh a déjà été demandé il y a moins de 10 secondes.
+  async function handleRefresh() {
+    setRefreshing(true);
+    setRefreshError("");
+    try {
+      await refreshNamespace(name);
+      load();
+    } catch (err) {
+      setRefreshError(err.response?.data?.error || "Échec de la resynchronisation");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -116,6 +136,15 @@ export default function NamespaceDetail() {
             </a>
           )}
           <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="Resynchroniser avec ArgoCD"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-slate-600 bg-white border border-slate-300 rounded-md px-3 py-2 sm:py-1.5 hover:bg-slate-50 transition disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+            Resynchroniser
+          </button>
+          <button
             onClick={() => setDeleteOpen(true)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-sm text-red-600 bg-white border border-red-200 rounded-md px-3 py-2 sm:py-1.5 hover:bg-red-50 transition"
           >
@@ -139,6 +168,8 @@ export default function NamespaceDetail() {
           setDeleteError("");
         }}
       />
+
+      {refreshError && <p className="text-sm text-red-600">{refreshError}</p>}
 
       <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-3">Quotas</h2>

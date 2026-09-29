@@ -132,6 +132,15 @@ export async function deleteNamespace(name) {
   await api.delete(`/namespaces/${name}`);
 }
 
+// refreshNamespace demande à ArgoCD de resynchroniser immédiatement l'environnement
+// (voir handlers.NamespaceHandler.Refresh) - déjà déclenché automatiquement après
+// chaque modification (création/ajout/mise à jour de composant), utile surtout après
+// un déploiement via la pipeline CI/CD d'un composant ou en cas de doute. 429 si un
+// refresh a déjà été demandé il y a moins de 10 secondes.
+export async function refreshNamespace(name) {
+  await api.post(`/namespaces/${name}/refresh`);
+}
+
 export async function addComponent(name, component) {
   const { data } = await api.post(`/namespaces/${name}/components`, component);
   return data;

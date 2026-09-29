@@ -236,6 +236,20 @@ export const API_REFERENCE = [
     responseNotes: ["204 No Content."],
   },
   {
+    method: "POST",
+    path: "/namespaces/:id/refresh",
+    examplePath: "/namespaces/ns-exemple/refresh",
+    auth: "authenticated",
+    category: "Environnements",
+    description: "Demande à ArgoCD de resynchroniser immédiatement cet environnement, au lieu d'attendre le prochain cycle de reconciliation périodique. Déjà déclenché automatiquement après chaque création/modification (composant, déploiement, changement de tier) - utile surtout après un déploiement via la pipeline CI/CD d'un composant.",
+    pathParams: [{ name: ":id", description: "nom complet de l'environnement" }],
+    response: null,
+    responseNotes: [
+      "204 No Content si accepté.",
+      "429 si un refresh de cet environnement a déjà été demandé il y a moins de 10 secondes.",
+    ],
+  },
+  {
     method: "GET",
     path: "/namespaces/:id/pods",
     examplePath: "/namespaces/ns-exemple/pods",
