@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2 } from "lucide-react";
-import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent } from "../api";
+import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw } from "lucide-react";
+import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, listSecrets } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/componentTypes";
@@ -31,6 +31,11 @@ export default function ComponentDetail() {
   const [replicas, setReplicas] = useState(1);
   const [expose, setExpose] = useState(false);
   const [envRows, setEnvRows] = useState([]);
+  // secretRows : secrets de l'environnement injectés dans ce composant (nom de
+  // variable -> nom de secret), envoyés en secretEnv avec le reste de la config.
+  const [secretRows, setSecretRows] = useState([]);
+  const [envSecrets, setEnvSecrets] = useState([]);
+  const [restarting, setRestarting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -70,8 +75,45 @@ export default function ComponentDetail() {
     setReplicas(comp.replicas);
     setExpose(Boolean(comp.url));
     setEnvRows(Object.entries(comp.env || {}).map(([key, value]) => ({ key, value })));
+    setSecretRows(Object.entries(comp.secretEnv || {}).map(([envName, secret]) => ({ envName, secret })));
     setConfigLoaded(true);
+    listSecrets(name)
+      .then((res) => setEnvSecrets(res.secrets))
+      .catch(() => setEnvSecrets([]));
   }, [ns, component, configLoaded]);
+
+  // Le mot de passe d'une base de données (secret "system" <composant>-password) reste
+  // toujours injecté - l'API refuse de le retirer ou de le rediriger.
+  function isLockedSecretRow(row) {
+    return envSecrets.some((s) => s.name === row.secret && s.managedBy === "system" && s.name === `${component}-password`);
+  }
+
+  function updateSecretRow(i, patch) {
+    setSecretRows((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function addSecretRow() {
+    setSecretRows((rows) => [...rows, { envName: "", secret: envSecrets[0]?.name || "" }]);
+  }
+
+  function removeSecretRow(i) {
+    setSecretRows((rows) => rows.filter((_, idx) => idx !== i));
+  }
+
+  // restartNow régénère le composant sans rien changer : l'API ré-épingle ses secrets
+  // sur leur dernière version, ce qui redémarre ses pods.
+  async function restartNow() {
+    setRestarting(true);
+    setSaveError("");
+    try {
+      await updateComponent(name, component, {});
+      load();
+    } catch (err) {
+      setSaveError(err.response?.data?.error || "Erreur lors du redémarrage");
+    } finally {
+      setRestarting(false);
+    }
+  }
 
   function updateEnvRow(i, patch) {
     setEnvRows((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -94,11 +136,15 @@ export default function ComponentDetail() {
       const env = Object.fromEntries(
         envRows.filter((r) => r.key.trim()).map((r) => [r.key.trim(), r.value])
       );
+      const secretEnv = Object.fromEntries(
+        secretRows.filter((r) => r.envName.trim() && r.secret).map((r) => [r.envName.trim(), r.secret])
+      );
       await updateComponent(name, component, {
         image: image.trim(),
         port: Number(port),
         replicas: Number(replicas),
         env,
+        secretEnv,
         expose,
       });
       setSaved(true);
@@ -231,6 +277,24 @@ export default function ComponentDetail() {
           Image, ressources et variables d'environnement - un changement redéploie le composant.
         </p>
 
+        {comp.pendingSecretRestart?.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+            <p className="text-xs text-amber-800">
+              Nouvelle valeur en attente de redémarrage pour{" "}
+              <span className="font-mono">{comp.pendingSecretRestart.join(", ")}</span>.
+            </p>
+            <button
+              type="button"
+              onClick={restartNow}
+              disabled={restarting}
+              className="shrink-0 flex items-center justify-center gap-1.5 text-xs font-medium text-amber-900 border border-amber-300 rounded-md px-3 py-1.5 hover:bg-amber-100 transition disabled:opacity-50"
+            >
+              <RotateCw size={12} className={restarting ? "animate-spin" : ""} />
+              Redémarrer maintenant
+            </button>
+          </div>
+        )}
+
         <form onSubmit={submitConfig} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_8rem] gap-3">
             <div>
@@ -302,7 +366,8 @@ export default function ComponentDetail() {
               Variables d'environnement
             </label>
             <p className="text-[11px] text-slate-400 mb-2">
-              Jamais le mot de passe d'une base de données - non modifiable ici.
+              Valeurs en clair, visibles dans la configuration - pour une valeur sensible, injecte un secret
+              ci-dessous.
             </p>
             <div className="space-y-2">
               {envRows.map((row, i) => (
@@ -337,6 +402,76 @@ export default function ComponentDetail() {
                 <Plus size={12} />
                 Ajouter une variable
               </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1.5">
+              <KeyRound size={12} />
+              Secrets injectés
+            </label>
+            <p className="text-[11px] text-slate-400 mb-2">
+              Choisis un secret de l'environnement et le nom de la variable qui le recevra. Les secrets se gèrent
+              sur la{" "}
+              <Link to={`/namespaces/${name}`} className="underline hover:text-slate-600">
+                page de l'environnement
+              </Link>
+              .
+            </p>
+            <div className="space-y-2">
+              {secretRows.map((row, i) => {
+                const locked = isLockedSecretRow(row);
+                return (
+                  <div key={i} className="flex gap-2 items-center">
+                    <input
+                      placeholder="VARIABLE"
+                      value={row.envName}
+                      disabled={locked}
+                      onChange={(e) => updateSecretRow(i, { envName: e.target.value })}
+                      className="flex-1 min-w-0 border border-slate-200 rounded-md px-2.5 py-1.5 text-xs font-mono disabled:bg-slate-50 disabled:text-slate-500"
+                    />
+                    <select
+                      value={row.secret}
+                      disabled={locked}
+                      onChange={(e) => updateSecretRow(i, { secret: e.target.value })}
+                      className="flex-1 min-w-0 border border-slate-200 rounded-md px-2 py-1.5 text-xs font-mono bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                    >
+                      {!envSecrets.some((s) => s.name === row.secret) && <option value={row.secret}>{row.secret || "— secret —"}</option>}
+                      {envSecrets.map((s) => (
+                        <option key={s.name} value={s.name}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                    {locked ? (
+                      <span className="shrink-0 text-slate-400 p-1 -m-1" title="Mot de passe de la base de données, toujours injecté">
+                        <Lock size={14} />
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => removeSecretRow(i)}
+                        className="shrink-0 text-slate-400 hover:text-red-600 transition p-1 -m-1"
+                        aria-label="Retirer le secret"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+              {envSecrets.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={addSecretRow}
+                  className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700"
+                >
+                  <Plus size={12} />
+                  Injecter un secret
+                </button>
+              ) : (
+                <p className="text-[11px] text-slate-400">Aucun secret dans cet environnement pour l'instant.</p>
+              )}
             </div>
           </div>
 

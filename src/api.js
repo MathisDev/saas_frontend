@@ -147,11 +147,55 @@ export async function addComponent(name, component) {
 }
 
 // updateComponent reconfigure un composant déjà provisionné - patch ne contient
-// que les champs à changer (image/port/replicas/env/expose), les autres gardent
-// leur valeur actuelle côté API. Seule façon de reconfigurer un composant : plus
-// de dépôt de manifests Kubernetes accessible au client (voir API.md).
+// que les champs à changer (image/port/replicas/env/secretEnv/expose), les autres
+// gardent leur valeur actuelle côté API. Seule façon de reconfigurer un composant :
+// plus de dépôt de manifests Kubernetes accessible au client (voir API.md). Un
+// patch vide ({}) redémarre le composant sur les dernières versions de ses secrets.
 export async function updateComponent(name, componentName, patch) {
   const { data } = await api.patch(`/namespaces/${name}/components/${componentName}`, patch);
+  return data;
+}
+
+// Secrets d'un environnement (voir handlers/secrets.go côté API) - listSecrets ne
+// renvoie jamais de valeur, seulement revealSecret. canManage est faux pour un
+// admin qui consulte l'environnement d'un client : il n'en voit que les noms.
+export async function listSecrets(name) {
+  const { data } = await api.get(`/namespaces/${name}/secrets`);
+  return data;
+}
+
+export async function createSecret(name, secretName, value) {
+  const { data } = await api.post(`/namespaces/${name}/secrets`, { name: secretName, value });
+  return data;
+}
+
+// updateSecret écrit une nouvelle valeur ; restart redémarre tout de suite les
+// composants qui injectent ce secret, sinon ils gardent leur version actuelle.
+export async function updateSecret(name, secretName, value, restart) {
+  const { data } = await api.patch(`/namespaces/${name}/secrets/${secretName}`, { value, restart });
+  return data;
+}
+
+// deleteSecret échoue en 409 (usedBy dans la réponse) tant que le secret est
+// injecté dans un composant.
+export async function deleteSecret(name, secretName) {
+  await api.delete(`/namespaces/${name}/secrets/${secretName}`);
+}
+
+export async function revealSecret(name, secretName, version) {
+  const { data } = await api.post(`/namespaces/${name}/secrets/${secretName}/reveal`, null, {
+    params: version ? { version } : {},
+  });
+  return data;
+}
+
+export async function listSecretVersions(name, secretName) {
+  const { data } = await api.get(`/namespaces/${name}/secrets/${secretName}/versions`);
+  return data;
+}
+
+export async function rollbackSecret(name, secretName, version, restart) {
+  const { data } = await api.post(`/namespaces/${name}/secrets/${secretName}/rollback`, { version, restart });
   return data;
 }
 

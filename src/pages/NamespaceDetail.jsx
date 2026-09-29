@@ -7,6 +7,7 @@ import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import GeneratedPasswords from "../components/GeneratedPasswords";
+import SecretsPanel from "../components/SecretsPanel";
 import { APP_VERSION } from "../version";
 import { TYPE_GROUPS, DATABASE_TYPES, TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 
@@ -30,7 +31,8 @@ export default function NamespaceDetail() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   // addedSecrets : composant base de données tout juste ajouté dont l'API a généré le
-  // mot de passe - renvoyé une seule fois (voir GeneratedPasswords).
+  // mot de passe - affiché une fois ici, puis consultable dans les secrets de
+  // l'environnement (voir GeneratedPasswords, SecretsPanel).
   const [addedSecrets, setAddedSecrets] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState("");
@@ -325,6 +327,8 @@ export default function NamespaceDetail() {
           <ComponentList components={ns.components} onSelect={(c) => setSelectedComponent(c.name)} />
         </div>
       </div>
+
+      <SecretsPanel namespace={name} onChange={load} />
 
       <ComponentInfoPopup
         namespace={name}
