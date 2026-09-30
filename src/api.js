@@ -199,6 +199,83 @@ export async function rollbackSecret(name, secretName, version, restart) {
   return data;
 }
 
+// Gestionnaire de données d'un composant postgres (voir handlers/databases.go côté
+// API). Une session tient les connexions à une database : sans user/password,
+// l'API utilise le mot de passe de la base ; la relation visée (schema, table)
+// passe toujours en paramètres, jamais dans le chemin.
+function dbSessionPath(name, component, sessionId) {
+  return `/namespaces/${name}/databases/${component}/sessions/${sessionId}`;
+}
+
+export async function openDatabaseSession(name, component, { database, user, password } = {}) {
+  const { data } = await api.post(`/namespaces/${name}/databases/${component}/sessions`, { database, user, password });
+  return data;
+}
+
+export async function closeDatabaseSession(name, component, sessionId) {
+  await api.delete(dbSessionPath(name, component, sessionId));
+}
+
+export async function listDatabaseTables(name, component, sessionId) {
+  const { data } = await api.get(`${dbSessionPath(name, component, sessionId)}/tables`);
+  return data;
+}
+
+export async function describeDatabaseTable(name, component, sessionId, schema, table) {
+  const { data } = await api.get(`${dbSessionPath(name, component, sessionId)}/table`, { params: { schema, table } });
+  return data;
+}
+
+// createDatabaseTable : columns = [{name, type, nullable, default, primaryKey}].
+export async function createDatabaseTable(name, component, sessionId, schema, table, columns) {
+  const { data } = await api.post(`${dbSessionPath(name, component, sessionId)}/tables`, { schema, name: table, columns });
+  return data;
+}
+
+export async function dropDatabaseTable(name, component, sessionId, schema, table, cascade = false) {
+  await api.delete(`${dbSessionPath(name, component, sessionId)}/table`, { params: { schema, table, cascade } });
+}
+
+// listDatabaseRows : filters = [{column, op, value}], op parmi eq, neq, lt, lte, gt,
+// gte, contains, null, notnull.
+export async function listDatabaseRows(name, component, sessionId, schema, table, { limit, offset, sort, desc, filters }) {
+  const { data } = await api.get(`${dbSessionPath(name, component, sessionId)}/rows`, {
+    params: {
+      schema,
+      table,
+      limit,
+      offset,
+      sort: sort || undefined,
+      desc: desc || undefined,
+      filters: filters?.length ? JSON.stringify(filters) : undefined,
+    },
+  });
+  return data;
+}
+
+// Une valeur null écrit NULL ; une colonne absente de values garde sa valeur (ou
+// prend sa valeur par défaut à l'ajout). key désigne la ligne : colonnes de la clé
+// primaire, ou {"$ctid": ...} pour une table sans clé primaire.
+export async function insertDatabaseRow(name, component, sessionId, schema, table, values) {
+  const { data } = await api.post(`${dbSessionPath(name, component, sessionId)}/rows`, { schema, table, values });
+  return data.row;
+}
+
+export async function updateDatabaseRow(name, component, sessionId, schema, table, key, values) {
+  const { data } = await api.patch(`${dbSessionPath(name, component, sessionId)}/rows`, { schema, table, key, values });
+  return data.row;
+}
+
+export async function deleteDatabaseRow(name, component, sessionId, schema, table, key) {
+  await api.delete(`${dbSessionPath(name, component, sessionId)}/rows`, { data: { schema, table, key } });
+}
+
+// runDatabaseQuery exécute le SQL de l'éditeur : une transaction ouverte (BEGIN)
+// reste ouverte d'un appel à l'autre, jusqu'au COMMIT/ROLLBACK.
+export async function runDatabaseQuery(name, component, sessionId, sql) {
+  const { data } = await api.post(`${dbSessionPath(name, component, sessionId)}/query`, { sql });
+  return data;
+}
 
 export async function listPods(name) {
   const { data } = await api.get(`/namespaces/${name}/pods`);
