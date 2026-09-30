@@ -92,8 +92,12 @@ export default function Dashboard() {
           <p className="text-sm text-slate-500">
             Aucun environnement pour l'instant.
           </p>
-          <Link to="/new" className="text-sm text-slate-900 font-medium underline mt-2 inline-block">
-            En créer un
+          <Link
+            to="/new"
+            className="mt-3 inline-flex items-center gap-1.5 bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-slate-800 transition"
+          >
+            <Plus size={14} />
+            Créer un environnement
           </Link>
         </div>
       )}

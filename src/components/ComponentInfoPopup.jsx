@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { X, ExternalLink, GitBranch, ArrowRight, Wifi, Database } from "lucide-react";
+import { X, ExternalLink, Globe, ArrowRight, Wifi, Database } from "lucide-react";
+import { GitLabIcon } from "./BrandIcons";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 
@@ -74,17 +75,31 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3 mb-4 text-xs">
+        <div className="flex flex-wrap gap-2 mb-4 text-xs">
           {component.url && (
-            <a href={component.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sky-600 font-medium">
-              <ExternalLink size={12} />
-              ouvrir
+            <a
+              href={component.url}
+              target="_blank"
+              rel="noreferrer"
+              title="Ouvrir l'URL publique dans un nouvel onglet"
+              className="flex items-center gap-1.5 font-medium text-sky-700 bg-sky-50 ring-1 ring-sky-100 rounded-md px-2.5 py-1.5 hover:bg-sky-100 transition"
+            >
+              <Globe size={13} />
+              URL publique
+              <ExternalLink size={11} className="opacity-60" />
             </a>
           )}
           {component.repoUrl && (
-            <a href={component.repoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-slate-500">
-              <GitBranch size={12} />
-              dépôt GitLab
+            <a
+              href={component.repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Ouvrir le dépôt GitLab dans un nouvel onglet"
+              className="flex items-center gap-1.5 font-medium text-slate-700 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition"
+            >
+              <GitLabIcon size={13} />
+              Dépôt GitLab
+              <ExternalLink size={11} className="text-slate-400" />
             </a>
           )}
         </div>

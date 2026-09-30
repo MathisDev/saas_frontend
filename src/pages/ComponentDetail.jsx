@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link, Navigate } from "react-router-dom";
-import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight } from "lucide-react";
+import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ScrollText, SquareTerminal, RefreshCw } from "lucide-react";
 import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import { GitLabIcon, GrafanaIcon } from "../components/BrandIcons";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 
@@ -279,18 +280,18 @@ export default function ComponentDetail() {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-4 text-xs mb-4">
+        <div className="flex flex-wrap gap-2 text-xs mb-4">
           {comp.url && (
             <a
               href={comp.url}
               target="_blank"
               rel="noreferrer"
               title="Ouvrir l'URL publique dans un nouvel onglet"
-              className="flex items-center gap-1 text-sky-600 font-medium min-w-0 break-all"
+              className="flex items-center gap-1.5 min-w-0 max-w-full font-medium text-sky-700 bg-sky-50 ring-1 ring-sky-100 rounded-md px-2.5 py-1.5 hover:bg-sky-100 transition"
             >
-              <Globe size={12} className="shrink-0" />
-              {comp.url}
-              <ExternalLink size={11} className="shrink-0" />
+              <Globe size={13} className="shrink-0" />
+              <span className="truncate">{comp.url}</span>
+              <ExternalLink size={11} className="shrink-0 opacity-60" />
             </a>
           )}
           {comp.repoUrl && (
@@ -299,11 +300,24 @@ export default function ComponentDetail() {
               target="_blank"
               rel="noreferrer"
               title="Ouvrir le dépôt GitLab dans un nouvel onglet"
-              className="flex items-center gap-1 text-slate-500 hover:text-slate-700"
+              className="flex items-center gap-1.5 min-w-0 font-medium text-slate-700 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition"
             >
-              <GitBranch size={12} />
-              Dépôt GitLab (code source et pipeline)
-              <ExternalLink size={11} className="shrink-0" />
+              <GitLabIcon size={13} />
+              <span className="truncate">Dépôt GitLab (code source et pipeline)</span>
+              <ExternalLink size={11} className="shrink-0 text-slate-400" />
+            </a>
+          )}
+          {ns.grafanaDashboardUrl && (
+            <a
+              href={ns.grafanaDashboardUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Ouvrir le dashboard Grafana dans un nouvel onglet"
+              className="flex items-center gap-1.5 min-w-0 font-medium text-slate-700 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition"
+            >
+              <GrafanaIcon size={13} />
+              <span className="truncate">Dashboard Grafana (métriques et logs)</span>
+              <ExternalLink size={11} className="shrink-0 text-slate-400" />
             </a>
           )}
         </div>
@@ -601,15 +615,20 @@ export default function ComponentDetail() {
             {selectedPod && (
               <>
                 <div className="bg-white rounded-xl shadow p-4 sm:p-5">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <h2 className="text-sm font-semibold">
-                      Logs
-                      <Link to={`/namespaces/${name}/pods/${selectedPod}`} className="ml-2 text-xs text-slate-400 font-normal hover:text-slate-600">
-                        (détail du pod →)
-                      </Link>
-                    </h2>
-                    <button onClick={() => loadLogs(selectedPod)} className="text-xs text-slate-500">
-                      actualiser
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ScrollText size={15} className="text-slate-400" />
+                        <h2 className="text-sm font-semibold">Logs</h2>
+                      </div>
+                      <p className="text-xs text-slate-500">Sortie du conteneur, actualisée toutes les 10 secondes.</p>
+                    </div>
+                    <button
+                      onClick={() => loadLogs(selectedPod)}
+                      className="shrink-0 flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition"
+                    >
+                      <RefreshCw size={12} />
+                      Actualiser
                     </button>
                   </div>
                   <pre className="bg-slate-900 text-slate-100 text-[11px] sm:text-xs rounded-md p-3 sm:p-4 overflow-auto max-h-72 whitespace-pre-wrap break-all">
@@ -618,7 +637,10 @@ export default function ComponentDetail() {
                 </div>
 
                 <div className="bg-white rounded-xl shadow p-4 sm:p-5">
-                  <h2 className="text-sm font-semibold mb-1">Shell</h2>
+                  <div className="flex items-center gap-2 mb-1">
+                    <SquareTerminal size={15} className="text-slate-400" />
+                    <h2 className="text-sm font-semibold">Shell</h2>
+                  </div>
                   <p className="text-xs text-slate-500 mb-3">
                     Session interactive via WebSocket - vim, top, etc. fonctionnent normalement.
                   </p>

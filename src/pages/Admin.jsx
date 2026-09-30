@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronRight } from "lucide-react";
 import { adminListNamespaces, deleteNamespace } from "../api";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
@@ -115,8 +115,12 @@ export default function Admin() {
             {namespaces.map((ns) => (
               <tr key={ns.id} className="border-t border-slate-100">
                 <td className="px-4 py-3 font-mono">
-                  <Link to={`/namespaces/${ns.name}`} className="hover:underline">
+                  <Link
+                    to={`/namespaces/${ns.name}`}
+                    className="inline-flex items-center gap-1 font-medium text-slate-900 hover:text-indigo-600 transition"
+                  >
                     {ns.name}
+                    <ChevronRight size={14} className="text-slate-400" />
                   </Link>
                 </td>
                 <td className="px-4 py-3">
