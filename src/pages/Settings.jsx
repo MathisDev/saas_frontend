@@ -300,11 +300,12 @@ export default function Settings() {
       <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <h2 className="text-sm font-semibold mb-1">Manifest pour IA</h2>
         <p className="text-xs text-slate-500 mb-4">
-          Génère un document Markdown auto-suffisant (authentification, endpoints, conventions de
-          nommage, quotas par défaut) plus l'état actuel de tes namespaces - à coller dans le
-          contexte d'un assistant IA pour qu'il puisse développer ou scripter contre cette
-          plateforme sans avoir à la redécouvrir. Ne contient jamais ta clé API ni ton mot de
-          passe.
+          Génère un document Markdown auto-suffisant (authentification, format des erreurs, recettes
+          pas à pas pour créer/reconfigurer/supprimer des environnements et composants, gérer les
+          secrets et les bases, référence des endpoints, conventions de nommage, quotas) plus l'état
+          actuel de tes namespaces - à coller dans le contexte d'un agent IA pour qu'il puisse créer
+          et gérer des environnements de façon autonome via l'API, sans avoir à la redécouvrir. Ne
+          contient jamais ta clé API ni ton mot de passe.
         </p>
 
         {manifestError && <p className="text-sm text-red-600 mb-3">{manifestError}</p>}
