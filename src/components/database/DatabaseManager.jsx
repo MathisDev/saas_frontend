@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Database, KeyRound, RefreshCw, Table2, TerminalSquare } from "lucide-react";
+import { Archive, Database, KeyRound, RefreshCw, Table2, TerminalSquare } from "lucide-react";
 import { openDatabaseSession, closeDatabaseSession } from "../../api";
 import { dbError } from "../../lib/dbErrors";
 import DbErrorBox from "./DbErrorBox";
 import TableBrowser from "./TableBrowser";
 import SqlEditor from "./SqlEditor";
+import BackupPanel from "./BackupPanel";
 
 // DatabaseManager est l'onglet "Données" d'un composant postgres (voir
-// ComponentDetail) : navigateur de tables et éditeur SQL. Les connexions sont
+// ComponentDetail) : navigateur de tables, éditeur SQL et sauvegardes. Les
+// sauvegardes ne passent pas par la session (elles tournent dans le pod de la
+// base) : leur vue reste accessible même si la connexion échoue. Les connexions sont
 // tenues par l'API dans une session, rouverte d'elle-même si elle expire. Sans
 // identifiants, l'API utilise le mot de passe de la base ; s'il est refusé, un
 // formulaire les demande - ils ne vivent alors qu'en mémoire, le temps de la page.
@@ -19,6 +22,8 @@ export default function DatabaseManager({ namespace, component }) {
   const [mode, setMode] = useState("tables");
   const [login, setLogin] = useState({ user: "", password: "" });
   const [loggingIn, setLoggingIn] = useState(false);
+  // dataVersion remonte le navigateur et l'éditeur après une restauration.
+  const [dataVersion, setDataVersion] = useState(0);
 
   const sessionRef = useRef(null);
   const credsRef = useRef(null);
@@ -115,6 +120,13 @@ export default function DatabaseManager({ namespace, component }) {
     }
   }
 
+  // Après une restauration, l'API a fermé les sessions de la base : on en rouvre une
+  // et on repart de vues vierges.
+  const onRestored = useCallback(() => {
+    setDataVersion((v) => v + 1);
+    if (sessionRef.current) open(sessionRef.current.database);
+  }, [open]);
+
   async function submitLogin(e) {
     e.preventDefault();
     setLoggingIn(true);
@@ -123,130 +135,149 @@ export default function DatabaseManager({ namespace, component }) {
     setLoggingIn(false);
   }
 
-  if (status === "connecting") {
-    return <p className="text-sm text-slate-500">Connexion à la base...</p>;
-  }
-
-  if (status === "login") {
-    const intro =
-      error?.code === "db_credentials_required"
-        ? "Aucun mot de passe n'est enregistré pour cette base : saisis ses identifiants."
-        : credsRef.current
-          ? "Identifiants refusés par la base."
-          : "Le mot de passe enregistré pour cette base a été refusé (a-t-il été changé depuis, en SQL ?) : saisis ses identifiants.";
-    return (
-      <form onSubmit={submitLogin} className="max-w-sm space-y-3">
-        <div className="flex items-center gap-2">
-          <KeyRound size={15} className="text-slate-400" />
-          <h2 className="text-sm font-semibold">Connexion à la base</h2>
-        </div>
-        <p className={`text-xs ${credsRef.current ? "text-red-600" : "text-slate-500"}`}>{intro}</p>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Utilisateur</label>
-          <input
-            required
-            value={login.user}
-            onChange={(e) => setLogin((l) => ({ ...l, user: e.target.value }))}
-            autoComplete="off"
-            className="w-full border border-slate-300 rounded-md px-3 py-1.5 text-sm font-mono"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Mot de passe</label>
-          <input
-            required
-            autoFocus
-            type="password"
-            value={login.password}
-            onChange={(e) => setLogin((l) => ({ ...l, password: e.target.value }))}
-            autoComplete="off"
-            className="w-full border border-slate-300 rounded-md px-3 py-1.5 text-sm font-mono"
-          />
-        </div>
-        <p className="text-[11px] text-slate-400">Gardés en mémoire le temps de cette page seulement.</p>
+  const modes = [
+    ["tables", "Tables", Table2],
+    ["sql", "SQL", TerminalSquare],
+    ["backups", "Sauvegardes", Archive],
+  ];
+  const modeSwitch = (
+    <div className="flex bg-slate-100 rounded-lg p-0.5">
+      {modes.map(([value, label, Icon]) => (
         <button
-          type="submit"
-          disabled={loggingIn}
-          className="w-full sm:w-auto bg-slate-900 text-white text-sm font-medium px-4 py-2.5 sm:py-2 rounded-md disabled:opacity-50"
+          key={value}
+          onClick={() => setMode(value)}
+          className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-md transition ${
+            mode === value ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"
+          }`}
         >
-          {loggingIn ? "Connexion..." : "Se connecter"}
+          <Icon size={12} />
+          {label}
         </button>
-      </form>
-    );
-  }
-
-  if (status === "error") {
-    return (
-      <div className="space-y-3">
-        <DbErrorBox error={error} />
-        <button
-          onClick={() => {
-            setStatus("connecting");
-            open(sessionRef.current?.database);
-          }}
-          className="flex items-center gap-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-md px-3 py-1.5 hover:bg-slate-50"
-        >
-          <RefreshCw size={12} />
-          Réessayer
-        </button>
-      </div>
-    );
-  }
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <Database size={15} className="text-slate-400 shrink-0" />
-          <select
-            value={session.database}
-            onChange={(e) => switchDatabase(e.target.value)}
-            className="border border-slate-200 rounded-md px-2 py-1 text-xs font-mono bg-white max-w-[12rem]"
-            aria-label="Database"
-          >
-            {session.databases.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <span className="text-[11px] text-slate-400 truncate">
-            {session.user}
-            {session.credentialSource === "manual" && " (identifiants saisis)"} · PostgreSQL {session.serverVersion}
-          </span>
+          {status === "ready" && mode !== "backups" && (
+            <>
+              <Database size={15} className="text-slate-400 shrink-0" />
+              <select
+                value={session.database}
+                onChange={(e) => switchDatabase(e.target.value)}
+                className="border border-slate-200 rounded-md px-2 py-1 text-xs font-mono bg-white max-w-[12rem]"
+                aria-label="Database"
+              >
+                {session.databases.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11px] text-slate-400 truncate">
+                {session.user}
+                {session.credentialSource === "manual" && " (identifiants saisis)"} · PostgreSQL {session.serverVersion}
+              </span>
+            </>
+          )}
         </div>
-        <div className="flex bg-slate-100 rounded-lg p-0.5">
-          {[
-            ["tables", "Tables", Table2],
-            ["sql", "SQL", TerminalSquare],
-          ].map(([value, label, Icon]) => (
-            <button
-              key={value}
-              onClick={() => setMode(value)}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-md transition ${
-                mode === value ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <Icon size={12} />
-              {label}
-            </button>
-          ))}
-        </div>
+        {modeSwitch}
       </div>
 
-      <DbErrorBox error={switchError} />
-
-      {/* Les deux vues restent montées : changer d'onglet ne perd ni la table
-          affichée ni le résultat (ou la transaction) de l'éditeur. Changer de
-          database les remet à zéro. */}
-      <div key={session.database}>
-        <div className={mode === "tables" ? "" : "hidden"}>
-          <TableBrowser namespace={namespace} component={component} run={run} />
-        </div>
-        <div className={mode === "sql" ? "" : "hidden"}>
-          <SqlEditor namespace={namespace} component={component} run={run} />
-        </div>
-      </div>
+      {mode === "backups" && <BackupPanel namespace={namespace} component={component} onRestored={onRestored} />}
+      <div className={mode === "backups" ? "hidden" : ""}>{connectionView()}</div>
     </div>
   );
+
+  function connectionView() {
+    if (status === "connecting") {
+      return <p className="text-sm text-slate-500">Connexion à la base...</p>;
+    }
+
+    if (status === "login") {
+      const intro =
+        error?.code === "db_credentials_required"
+          ? "Aucun mot de passe n'est enregistré pour cette base : saisis ses identifiants."
+          : credsRef.current
+            ? "Identifiants refusés par la base."
+            : "Le mot de passe enregistré pour cette base a été refusé (a-t-il été changé depuis, en SQL ?) : saisis ses identifiants.";
+      return (
+        <form onSubmit={submitLogin} className="max-w-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <KeyRound size={15} className="text-slate-400" />
+            <h2 className="text-sm font-semibold">Connexion à la base</h2>
+          </div>
+          <p className={`text-xs ${credsRef.current ? "text-red-600" : "text-slate-500"}`}>{intro}</p>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Utilisateur</label>
+            <input
+              required
+              value={login.user}
+              onChange={(e) => setLogin((l) => ({ ...l, user: e.target.value }))}
+              autoComplete="off"
+              className="w-full border border-slate-300 rounded-md px-3 py-1.5 text-sm font-mono"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Mot de passe</label>
+            <input
+              required
+              autoFocus
+              type="password"
+              value={login.password}
+              onChange={(e) => setLogin((l) => ({ ...l, password: e.target.value }))}
+              autoComplete="off"
+              className="w-full border border-slate-300 rounded-md px-3 py-1.5 text-sm font-mono"
+            />
+          </div>
+          <p className="text-[11px] text-slate-400">Gardés en mémoire le temps de cette page seulement.</p>
+          <button
+            type="submit"
+            disabled={loggingIn}
+            className="w-full sm:w-auto bg-slate-900 text-white text-sm font-medium px-4 py-2.5 sm:py-2 rounded-md disabled:opacity-50"
+          >
+            {loggingIn ? "Connexion..." : "Se connecter"}
+          </button>
+        </form>
+      );
+    }
+
+    if (status === "error") {
+      return (
+        <div className="space-y-3">
+          <DbErrorBox error={error} />
+          <button
+            onClick={() => {
+              setStatus("connecting");
+              open(sessionRef.current?.database);
+            }}
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-md px-3 py-1.5 hover:bg-slate-50"
+          >
+            <RefreshCw size={12} />
+            Réessayer
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <DbErrorBox error={switchError} />
+
+        {/* Les deux vues restent montées : changer d'onglet ne perd ni la table
+            affichée ni le résultat (ou la transaction) de l'éditeur. Changer de
+            database, ou restaurer une sauvegarde, les remet à zéro. */}
+        <div key={`${session.database}-${dataVersion}`}>
+          <div className={mode === "tables" ? "" : "hidden"}>
+            <TableBrowser namespace={namespace} component={component} run={run} />
+          </div>
+          <div className={mode === "sql" ? "" : "hidden"}>
+            <SqlEditor namespace={namespace} component={component} run={run} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 }

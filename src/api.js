@@ -277,6 +277,32 @@ export async function runDatabaseQuery(name, component, sessionId, sql) {
   return data;
 }
 
+// Sauvegardes d'un composant postgres (voir handlers/backups.go côté API) :
+// création et restauration tournent en tâche de fond (202), leur état se lit dans
+// listDatabaseBackups (running / last).
+function backupsPath(name, component) {
+  return `/namespaces/${name}/databases/${component}/backups`;
+}
+
+export async function listDatabaseBackups(name, component) {
+  const { data } = await api.get(backupsPath(name, component));
+  return data;
+}
+
+export async function createDatabaseBackup(name, component, database) {
+  const { data } = await api.post(backupsPath(name, component), { database });
+  return data.operation;
+}
+
+export async function restoreDatabaseBackup(name, component, backupId, safetyBackup = true) {
+  const { data } = await api.post(`${backupsPath(name, component)}/${encodeURIComponent(backupId)}/restore`, { safetyBackup });
+  return data.operation;
+}
+
+export async function deleteDatabaseBackup(name, component, backupId) {
+  await api.delete(`${backupsPath(name, component)}/${encodeURIComponent(backupId)}`);
+}
+
 export async function listPods(name) {
   const { data } = await api.get(`/namespaces/${name}/pods`);
   return data;

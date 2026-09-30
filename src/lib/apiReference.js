@@ -9,7 +9,7 @@ export const COMPONENT_TYPES_DOC = [
   "python", "django", "fastapi",
   "springboot", "aspnet", "go",
   "laravel", "symfony",
-  "postgres", "mysql", "mssql", "mongodb", "redis",
+  "postgres",
   "custom",
 ];
 
@@ -163,7 +163,7 @@ export const API_REFERENCE = [
       "components[].name : requis, commence par une lettre, minuscules alphanumériques + tirets ; exposé, <name>-<slug-client> doit tenir en 63 caractères",
       `components[].type : requis, une des ${COMPONENT_TYPES_DOC.length} valeurs valides (voir liste ci-dessous)`,
       "components[].image : obligatoire uniquement pour type \"custom\"",
-      "components[].expose : jamais autorisé pour un type base de données (postgres, mysql, mssql, mongodb, redis)",
+      "components[].expose : jamais autorisé pour postgres (base de données : 1 réplica, volume de données et volume de sauvegardes de 5 Gi chacun)",
     ],
     response: {
       id: "8b1c...-uuid",
@@ -603,6 +603,90 @@ export const API_REFERENCE = [
     ],
     response: null,
     responseNotes: ["204 No Content."],
+  },
+  {
+    method: "GET",
+    path: "/namespaces/:id/databases/:component/backups",
+    examplePath: "/namespaces/ns-exemple/databases/db/backups",
+    auth: "authenticated",
+    category: "Données",
+    description:
+      "Sauvegardes d'un composant postgres, stockées sur son volume <composant>-backups (5 Gi) : liste, place occupée, opération en cours et dernière opération terminée. Une sauvegarde automatique de chaque database est prise tous les jours. Réservé au propriétaire de l'environnement.",
+    pathParams: [
+      { name: ":id", description: "nom complet de l'environnement" },
+      { name: ":component", description: "composant postgres" },
+    ],
+    response: {
+      volumeReady: true,
+      backups: [{ id: "20260930-102000-123.manual.ZGI.dump", database: "db", kind: "manual", createdAt: "2026-09-30T10:20:00.123Z", sizeBytes: 48213 }],
+      databases: ["db", "postgres"],
+      defaultDatabase: "db",
+      usedBytes: 48213,
+      limitBytes: 5368709120,
+      running: null,
+      last: { type: "backup", kind: "manual", backupId: "20260930-102000-123.manual.ZGI.dump", database: "db", status: "succeeded", startedAt: "2026-09-30T10:20:00Z", finishedAt: "2026-09-30T10:20:02Z" },
+      nextAutoBackupAt: "2026-10-01T10:20:00Z",
+    },
+    responseNotes: [
+      "kind : manual (manuelle, jamais supprimée d'office), auto (quotidienne, 7 gardées par database), prerestore (sauvegarde de sécurité avant restauration, 3 gardées).",
+      "volumeReady false : la base n'a pas encore son volume de sauvegardes, il arrive à la prochaine régénération du composant (PATCH, même vide).",
+      "503 db_unreachable si le pod de la base n'est pas prêt.",
+    ],
+  },
+  {
+    method: "POST",
+    path: "/namespaces/:id/databases/:component/backups",
+    examplePath: "/namespaces/ns-exemple/databases/db/backups",
+    auth: "authenticated",
+    category: "Données",
+    description: "Lance une sauvegarde manuelle (pg_dump, format custom) d'une database. Elle tourne en tâche de fond : suivre son état avec GET .../backups.",
+    pathParams: [
+      { name: ":id", description: "nom complet de l'environnement" },
+      { name: ":component", description: "composant postgres" },
+    ],
+    body: { database: "db" },
+    bodyNotes: ["database : facultatif, par défaut celle créée avec le composant (POSTGRES_DB)."],
+    response: { operation: { type: "backup", kind: "manual", database: "db", status: "running", startedAt: "2026-09-30T10:20:00Z" } },
+    responseNotes: [
+      "202 Accepted.",
+      "409 backup_busy si une sauvegarde ou une restauration est déjà en cours sur cette base, 409 backup_volume_full si les sauvegardes occupent déjà 5 Gi, 409 backup_volume_missing si le volume n'est pas encore monté.",
+    ],
+  },
+  {
+    method: "POST",
+    path: "/namespaces/:id/databases/:component/backups/:backup/restore",
+    examplePath: "/namespaces/ns-exemple/databases/db/backups/20260930-102000-123.manual.ZGI.dump/restore",
+    auth: "authenticated",
+    category: "Données",
+    description:
+      "Restaure une sauvegarde dans sa database d'origine, en une seule transaction : en cas d'erreur, rien n'est modifié. Les objets de la sauvegarde sont supprimés puis recréés ; ceux créés depuis sont conservés. Les sessions du gestionnaire de données sur cette base sont fermées.",
+    pathParams: [
+      { name: ":id", description: "nom complet de l'environnement" },
+      { name: ":component", description: "composant postgres" },
+      { name: ":backup", description: "id de la sauvegarde (nom du fichier)" },
+    ],
+    body: { safetyBackup: true },
+    bodyNotes: ["safetyBackup : true par défaut, sauvegarde d'abord l'état actuel de la database (kind prerestore)."],
+    response: { operation: { type: "restore", kind: "manual", backupId: "20260930-102000-123.manual.ZGI.dump", database: "db", status: "running", startedAt: "2026-09-30T11:00:00Z" } },
+    responseNotes: [
+      "202 Accepted : suivre l'état avec GET .../backups.",
+      "La restauration est annulée si une autre connexion garde une table verrouillée plus de 30 s.",
+    ],
+  },
+  {
+    method: "DELETE",
+    path: "/namespaces/:id/databases/:component/backups/:backup",
+    examplePath: "/namespaces/ns-exemple/databases/db/backups/20260930-102000-123.manual.ZGI.dump",
+    auth: "authenticated",
+    category: "Données",
+    description: "Supprime une sauvegarde.",
+    pathParams: [
+      { name: ":id", description: "nom complet de l'environnement" },
+      { name: ":component", description: "composant postgres" },
+      { name: ":backup", description: "id de la sauvegarde (nom du fichier)" },
+    ],
+    response: null,
+    responseNotes: ["204 No Content.", "409 backup_busy pendant une sauvegarde ou une restauration de cette base."],
   },
   {
     method: "GET",

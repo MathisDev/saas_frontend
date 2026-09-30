@@ -14,17 +14,22 @@ export const TYPE_GROUPS = [
   { label: "Python", types: ["python", "django", "fastapi"], icon: Code2, accent: "amber" },
   { label: "Backend compilé", types: ["springboot", "aspnet", "go"], icon: Terminal, accent: "violet" },
   { label: "PHP", types: ["laravel", "symfony"], icon: Braces, accent: "rose" },
-  { label: "Base de données", types: ["postgres", "mysql", "mssql", "mongodb", "redis"], icon: Database, accent: "indigo" },
+  { label: "Base de données", types: ["postgres"], icon: Database, accent: "indigo" },
   { label: "Autre", types: ["custom"], icon: Box, accent: "slate" },
 ];
 
+// Bases retirées (Retired côté API) : plus proposées à la création, mais les
+// composants existants de ces types s'affichent et se modifient toujours.
+const RETIRED_DATABASE_TYPES = ["mysql", "mssql", "mongodb", "redis"];
+
 export const COMPONENT_TYPES = TYPE_GROUPS.flatMap((g) => g.types);
 
-export const DATABASE_TYPES = new Set(["postgres", "mysql", "mssql", "mongodb", "redis"]);
+export const DATABASE_TYPES = new Set(["postgres", ...RETIRED_DATABASE_TYPES]);
 
-export const TYPE_STYLE = Object.fromEntries(
-  TYPE_GROUPS.flatMap(({ types, icon, accent }) => types.map((t) => [t, { icon, accent }]))
-);
+export const TYPE_STYLE = Object.fromEntries([
+  ...TYPE_GROUPS.flatMap(({ types, icon, accent }) => types.map((t) => [t, { icon, accent }])),
+  ...RETIRED_DATABASE_TYPES.map((t) => [t, { icon: Database, accent: "indigo" }]),
+]);
 
 // Classes Tailwind par teinte - listees en dur (et non composees dynamiquement,
 // ex. `bg-${accent}-50`) car Tailwind scanne le code source pour generer le CSS :
