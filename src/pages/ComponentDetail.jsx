@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, LayoutGrid, Database } from "lucide-react";
-import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, listSecrets } from "../api";
+import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
+import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import DatabaseManager from "../components/database/DatabaseManager";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
@@ -18,6 +19,7 @@ import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 export default function ComponentDetail() {
   const { name, component } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [ns, setNs] = useState(null);
   const [pods, setPods] = useState([]);
@@ -43,6 +45,9 @@ export default function ComponentDetail() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function load() {
     try {
@@ -160,6 +165,19 @@ export default function ComponentDetail() {
     }
   }
 
+  async function handleDelete() {
+    setDeleteLoading(true);
+    setDeleteError("");
+    try {
+      await deleteComponent(name, component);
+      navigate(`/namespaces/${name}`);
+    } catch (err) {
+      setDeleteError(err.response?.data?.error || "Échec de la suppression");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
   // Sélectionne le premier pod par défaut (cas typique : une seule réplique) -
   // recale si ce pod disparaît (redémarrage) tant qu'un autre existe encore.
   useEffect(() => {
@@ -206,16 +224,42 @@ export default function ComponentDetail() {
             { label: comp.name },
           ]}
         />
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}>
-            <Icon size={16} strokeWidth={2} />
+        <div className="flex items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ${ACCENT_BG[accent]} ${ACCENT_RING[accent]}`}>
+              <Icon size={16} strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold truncate">{comp.name}</h1>
+              <p className="text-xs text-slate-500 font-mono break-all">{comp.image}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold truncate">{comp.name}</h1>
-            <p className="text-xs text-slate-500 font-mono break-all">{comp.image}</p>
-          </div>
+          <button
+            onClick={() => setDeleteOpen(true)}
+            className="shrink-0 flex items-center justify-center gap-1.5 text-sm text-red-600 bg-white border border-red-200 rounded-md px-3 py-1.5 hover:bg-red-50 transition"
+          >
+            <Trash2 size={14} />
+            Supprimer
+          </button>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        open={deleteOpen}
+        title="Supprimer le composant"
+        description={`Supprime définitivement ${comp.name} de ${name}${
+          comp.type === "postgres" ? " (données et sauvegardes de sa base comprises)" : ""
+        }. Les autres composants de l'environnement ne sont pas affectés. Cette action est irréversible.`}
+        confirmText={comp.name}
+        confirmLabel="Nom du composant"
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setDeleteOpen(false);
+          setDeleteError("");
+        }}
+      />
 
       <div className="bg-white rounded-xl shadow p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2 mb-3">

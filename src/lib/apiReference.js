@@ -271,6 +271,23 @@ export const API_REFERENCE = [
     response: { name: "api", status: "Provisioning", env: { NODE_ENV: "production" }, secretEnv: { STRIPE_KEY: "stripe-key" } },
   },
   {
+    method: "DELETE",
+    path: "/namespaces/:id/components/:component",
+    examplePath: "/namespaces/ns-exemple/components/api",
+    auth: "authenticated",
+    category: "Environnements",
+    description: "Supprime définitivement un seul composant, sans toucher au reste de l'environnement (dépôt GitLab, secret du mot de passe s'il s'agit d'une base de données, données et sauvegardes de son volume compris). Refusée si une sauvegarde ou une restauration est en cours sur ce composant.",
+    pathParams: [
+      { name: ":id", description: "nom complet de l'environnement" },
+      { name: ":component", description: "nom du composant" },
+    ],
+    response: null,
+    responseNotes: [
+      "204 No Content.",
+      "409 si une sauvegarde ou une restauration est en cours sur ce composant.",
+    ],
+  },
+  {
     method: "GET",
     path: "/namespaces/:id/secrets",
     examplePath: "/namespaces/ns-exemple/secrets",

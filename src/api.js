@@ -156,6 +156,10 @@ export async function updateComponent(name, componentName, patch) {
   return data;
 }
 
+export async function deleteComponent(name, componentName) {
+  await api.delete(`/namespaces/${name}/components/${componentName}`);
+}
+
 // Secrets d'un environnement (voir handlers/secrets.go côté API) - listSecrets ne
 // renvoie jamais de valeur, seulement revealSecret. canManage est faux pour un
 // admin qui consulte l'environnement d'un client : il n'en voit que les noms.
