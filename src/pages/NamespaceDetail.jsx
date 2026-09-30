@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Trash2, ExternalLink, Plus, Globe, RefreshCw } from "lucide-react";
 import { getNamespace, deleteNamespace, getComponentsSummary, addComponent, refreshNamespace } from "../api";
 import ComponentList from "../components/ComponentList";
@@ -18,6 +18,7 @@ function emptyNewComponent() {
 export default function NamespaceDetail() {
   const { name } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [ns, setNs] = useState(null);
   const [componentStats, setComponentStats] = useState({});
@@ -57,6 +58,13 @@ export default function NamespaceDetail() {
     const interval = setInterval(load, 8000);
     return () => clearInterval(interval);
   }, [name]);
+
+  // Défilement vers la section ciblée par l'ancre (#secrets, lien depuis la page d'un
+  // composant) une fois la page chargée - React Router ne le fait pas lui-même.
+  useEffect(() => {
+    if (!ns || !location.hash) return;
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [ns, location.hash]);
 
   async function handleDelete() {
     setDeleteLoading(true);
@@ -328,7 +336,9 @@ export default function NamespaceDetail() {
         </div>
       </div>
 
-      <SecretsPanel namespace={name} onChange={load} />
+      <div id="secrets" className="scroll-mt-4">
+        <SecretsPanel namespace={name} onChange={load} />
+      </div>
 
       <ComponentInfoPopup
         namespace={name}

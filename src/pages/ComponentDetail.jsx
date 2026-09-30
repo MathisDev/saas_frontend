@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, LayoutGrid, Database } from "lucide-react";
+import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, LayoutGrid, Database, ArrowRight } from "lucide-react";
 import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
@@ -280,15 +280,29 @@ export default function ComponentDetail() {
 
         <div className="flex flex-wrap gap-4 text-xs mb-4">
           {comp.url && (
-            <a href={comp.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-sky-600 font-medium min-w-0 break-all">
-              <ExternalLink size={12} className="shrink-0" />
+            <a
+              href={comp.url}
+              target="_blank"
+              rel="noreferrer"
+              title="Ouvrir l'URL publique dans un nouvel onglet"
+              className="flex items-center gap-1 text-sky-600 font-medium min-w-0 break-all"
+            >
+              <Globe size={12} className="shrink-0" />
               {comp.url}
+              <ExternalLink size={11} className="shrink-0" />
             </a>
           )}
           {comp.repoUrl && (
-            <a href={comp.repoUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-slate-500">
+            <a
+              href={comp.repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              title="Ouvrir le dépôt GitLab dans un nouvel onglet"
+              className="flex items-center gap-1 text-slate-500 hover:text-slate-700"
+            >
               <GitBranch size={12} />
-              dépôt GitLab
+              Dépôt GitLab (code source et pipeline)
+              <ExternalLink size={11} className="shrink-0" />
             </a>
           )}
         </div>
@@ -321,11 +335,12 @@ export default function ComponentDetail() {
       {hasDataTab && (
         <div className="flex bg-slate-200/60 rounded-lg p-0.5 w-fit">
           {[
-            ["apercu", "Aperçu", LayoutGrid],
-            ["donnees", "Données", Database],
-          ].map(([value, label, TabIcon]) => (
+            ["apercu", "Aperçu", LayoutGrid, "Configuration, variables et journaux du composant"],
+            ["donnees", "Données", Database, "Tables, requêtes SQL et sauvegardes de la base"],
+          ].map(([value, label, TabIcon, hint]) => (
             <button
               key={value}
+              title={hint}
               onClick={() => setSearchParams(value === "apercu" ? {} : { tab: value }, { replace: true })}
               className={`flex items-center gap-1.5 text-xs font-medium px-3.5 py-1.5 rounded-md transition ${
                 tab === value ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"
@@ -486,13 +501,16 @@ export default function ComponentDetail() {
                 <KeyRound size={12} />
                 Secrets injectés
               </label>
-              <p className="text-[11px] text-slate-400 mb-2">
-                Choisis un secret de l'environnement et le nom de la variable qui le recevra. Les secrets se gèrent
-                sur la{" "}
-                <Link to={`/namespaces/${name}`} className="underline hover:text-slate-600">
-                  page de l'environnement
+              <p className="text-[11px] text-slate-400 mb-2 flex flex-wrap items-center gap-1">
+                Choisis un secret de l'environnement et le nom de la variable qui le recevra.
+                <Link
+                  to={`/namespaces/${name}#secrets`}
+                  className="inline-flex items-center gap-1 font-medium text-slate-600 hover:text-slate-900"
+                >
+                  <KeyRound size={11} />
+                  Créer ou modifier un secret
+                  <ArrowRight size={11} />
                 </Link>
-                .
               </p>
               <div className="space-y-2">
                 {secretRows.map((row, i) => {

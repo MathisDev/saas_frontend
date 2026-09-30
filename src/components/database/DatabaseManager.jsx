@@ -136,15 +136,16 @@ export default function DatabaseManager({ namespace, component }) {
   }
 
   const modes = [
-    ["tables", "Tables", Table2],
-    ["sql", "SQL", TerminalSquare],
-    ["backups", "Sauvegardes", Archive],
+    ["tables", "Tables", Table2, "Parcourir et modifier les lignes des tables"],
+    ["sql", "Éditeur SQL", TerminalSquare, "Exécuter des requêtes SQL libres"],
+    ["backups", "Sauvegardes", Archive, "Sauvegarder ou restaurer la base"],
   ];
   const modeSwitch = (
     <div className="flex bg-slate-100 rounded-lg p-0.5">
-      {modes.map(([value, label, Icon]) => (
+      {modes.map(([value, label, Icon, hint]) => (
         <button
           key={value}
+          title={hint}
           onClick={() => setMode(value)}
           className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-md transition ${
             mode === value ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"
