@@ -7,10 +7,11 @@ import TableBrowser from "./TableBrowser";
 import SqlEditor from "./SqlEditor";
 import BackupPanel from "./BackupPanel";
 
-// DatabaseManager est l'onglet "Données" d'un composant postgres (voir
-// ComponentDetail) : navigateur de tables, éditeur SQL et sauvegardes. Les
-// sauvegardes ne passent pas par la session (elles tournent dans le pod de la
-// base) : leur vue reste accessible même si la connexion échoue. Les connexions sont
+// DatabaseManager est le contenu de la page "Base de données" d'un composant postgres
+// (voir DatabasePage) : navigateur de tables et éditeur SQL, puis les sauvegardes
+// dans une section à part. Les sauvegardes ne passent pas par la session (elles
+// tournent dans le pod de la base) : leur section reste utilisable même si la
+// connexion échoue. Les connexions sont
 // tenues par l'API dans une session, rouverte d'elle-même si elle expire. Sans
 // identifiants, l'API utilise le mot de passe de la base ; s'il est refusé, un
 // formulaire les demande - ils ne vivent alors qu'en mémoire, le temps de la page.
@@ -138,7 +139,6 @@ export default function DatabaseManager({ namespace, component }) {
   const modes = [
     ["tables", "Tables", Table2, "Parcourir et modifier les lignes des tables"],
     ["sql", "Éditeur SQL", TerminalSquare, "Exécuter des requêtes SQL libres"],
-    ["backups", "Sauvegardes", Archive, "Sauvegarder ou restaurer la base"],
   ];
   const modeSwitch = (
     <div className="flex bg-slate-100 rounded-lg p-0.5">
@@ -159,36 +159,55 @@ export default function DatabaseManager({ namespace, component }) {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          {status === "ready" && mode !== "backups" && (
-            <>
-              <Database size={15} className="text-slate-400 shrink-0" />
-              <select
-                value={session.database}
-                onChange={(e) => switchDatabase(e.target.value)}
-                className="border border-slate-200 rounded-md px-2 py-1 text-xs font-mono bg-white max-w-[12rem]"
-                aria-label="Database"
-              >
-                {session.databases.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-              <span className="text-[11px] text-slate-400 truncate">
-                {session.user}
-                {session.credentialSource === "manual" && " (identifiants saisis)"} · PostgreSQL {session.serverVersion}
-              </span>
-            </>
-          )}
+    <div className="space-y-6">
+      <section className="bg-white rounded-xl shadow p-4 sm:p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 min-w-0">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Table2 size={15} className="text-slate-400" />
+              Données
+            </h2>
+            {status === "ready" && (
+              <>
+                <label className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Database size={13} className="shrink-0" />
+                  Base
+                  <select
+                    value={session.database}
+                    onChange={(e) => switchDatabase(e.target.value)}
+                    className="border border-slate-200 rounded-md px-2 py-1 text-xs font-mono text-slate-800 bg-white max-w-[12rem]"
+                  >
+                    {session.databases.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="text-[11px] text-slate-400 truncate">
+                  {session.user}
+                  {session.credentialSource === "manual" && " (identifiants saisis)"} · PostgreSQL {session.serverVersion}
+                </span>
+              </>
+            )}
+          </div>
+          {status === "ready" && modeSwitch}
         </div>
-        {modeSwitch}
-      </div>
+        {connectionView()}
+      </section>
 
-      {mode === "backups" && <BackupPanel namespace={namespace} component={component} onRestored={onRestored} />}
-      <div className={mode === "backups" ? "hidden" : ""}>{connectionView()}</div>
+      <section className="bg-white rounded-xl shadow p-4 sm:p-5 space-y-4">
+        <div>
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Archive size={15} className="text-slate-400" />
+            Sauvegardes
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Sauvegarde manuelle, restauration et suppression. Une restauration recharge la section Données ci-dessus.
+          </p>
+        </div>
+        <BackupPanel namespace={namespace} component={component} onRestored={onRestored} />
+      </section>
     </div>
   );
 

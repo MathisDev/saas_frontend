@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { X, ExternalLink, GitBranch, ArrowRight, Wifi } from "lucide-react";
+import { X, ExternalLink, GitBranch, ArrowRight, Wifi, Database } from "lucide-react";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 
@@ -89,6 +89,15 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
           )}
         </div>
 
+        {component.type === "postgres" && (
+          <Link
+            to={`/namespaces/${namespace}/components/${component.name}/database`}
+            className="flex items-center justify-center gap-1.5 w-full mb-2 text-sm font-medium text-indigo-700 bg-indigo-50 ring-1 ring-indigo-100 px-4 py-3 sm:py-2 rounded-lg sm:rounded-md hover:bg-indigo-100 transition"
+          >
+            <Database size={14} />
+            Base de données
+          </Link>
+        )}
         <Link
           to={`/namespaces/${namespace}/components/${component.name}`}
           className="flex items-center justify-center gap-1.5 w-full bg-slate-900 text-white text-sm font-medium px-4 py-3 sm:py-2 rounded-lg sm:rounded-md hover:bg-slate-800 active:bg-slate-800 transition"

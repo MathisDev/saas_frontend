@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
-import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, LayoutGrid, Database, ArrowRight } from "lucide-react";
+import { useParams, useSearchParams, useNavigate, Link, Navigate } from "react-router-dom";
+import { ExternalLink, GitBranch, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight } from "lucide-react";
 import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
-import DatabaseManager from "../components/database/DatabaseManager";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 
@@ -13,12 +12,11 @@ import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 // NamespaceDetail/ComponentList) : logs + shell, comme PodDetail, mais
 // cadrés sur le composant plutôt que sur un pod précis - logs/exec restant des
 // opérations par pod côté API (voir handlers/pods.go), un sélecteur s'affiche
-// dès que le composant a plus d'une réplique. Un composant postgres a en plus un
-// onglet "Données" (gestionnaire de données, voir components/database), mémorisé
-// dans l'URL (?tab=donnees).
+// dès que le composant a plus d'une réplique. Un composant postgres renvoie en plus
+// vers sa page "Base de données" (DatabasePage).
 export default function ComponentDetail() {
   const { name, component } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const [ns, setNs] = useState(null);
@@ -204,6 +202,10 @@ export default function ComponentDetail() {
     return () => clearInterval(interval);
   }, [name, selectedPod]);
 
+  // Anciens liens vers l'onglet "Données", devenu une page à part.
+  if (searchParams.get("tab") === "donnees") {
+    return <Navigate to={`/namespaces/${name}/components/${component}/database`} replace />;
+  }
   if (error) return <div className="text-sm text-red-600">{error}</div>;
   if (!ns) return <div className="text-sm text-slate-500">Chargement...</div>;
 
@@ -211,8 +213,7 @@ export default function ComponentDetail() {
   if (!comp) return <div className="text-sm text-red-600">Composant introuvable.</div>;
 
   const { icon: Icon, accent } = TYPE_STYLE[comp.type] || TYPE_STYLE.custom;
-  const hasDataTab = comp.type === "postgres";
-  const tab = hasDataTab && searchParams.get("tab") === "donnees" ? "donnees" : "apercu";
+  const hasDatabasePage = comp.type === "postgres";
 
   return (
     <div className="space-y-6">
@@ -332,33 +333,24 @@ export default function ComponentDetail() {
         )}
       </div>
 
-      {hasDataTab && (
-        <div className="flex bg-slate-200/60 rounded-lg p-0.5 w-fit">
-          {[
-            ["apercu", "Aperçu", LayoutGrid, "Configuration, variables et journaux du composant"],
-            ["donnees", "Données", Database, "Tables, requêtes SQL et sauvegardes de la base"],
-          ].map(([value, label, TabIcon, hint]) => (
-            <button
-              key={value}
-              title={hint}
-              onClick={() => setSearchParams(value === "apercu" ? {} : { tab: value }, { replace: true })}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3.5 py-1.5 rounded-md transition ${
-                tab === value ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <TabIcon size={13} />
-              {label}
-            </button>
-          ))}
-        </div>
+      {hasDatabasePage && (
+        <Link
+          to={`/namespaces/${name}/components/${comp.name}/database`}
+          className="flex items-center justify-between gap-3 bg-indigo-50 ring-1 ring-indigo-100 rounded-xl px-4 py-3.5 hover:bg-indigo-100/70 transition"
+        >
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-lg bg-white ring-1 ring-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+              <Database size={16} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-slate-900">Gérer la base de données</span>
+              <span className="block text-xs text-slate-500">Tables, éditeur SQL et sauvegardes sur une seule page</span>
+            </span>
+          </span>
+          <ArrowRight size={16} className="text-indigo-600 shrink-0" />
+        </Link>
       )}
 
-      {tab === "donnees" ? (
-        <div className="bg-white rounded-xl shadow p-4 sm:p-5">
-          <DatabaseManager namespace={name} component={component} />
-        </div>
-      ) : (
-        <>
         <div className="bg-white rounded-xl shadow p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-1">
             <Settings2 size={15} className="text-slate-400" />
@@ -636,8 +628,6 @@ export default function ComponentDetail() {
             )}
           </>
         )}
-        </>
-      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import {
 import { dbError } from "../../lib/dbErrors";
 import DbErrorBox from "./DbErrorBox";
 
-// BackupPanel est la vue "Sauvegardes" du gestionnaire de données : sauvegardes du
+// BackupPanel est la section "Sauvegardes" de la page Base de données : sauvegardes du
 // volume <composant>-backups (voir handlers/backups.go côté API). Création et
 // restauration tournent en tâche de fond côté API : la liste est rechargée toutes
 // les 2 s tant qu'une opération est en cours. onRestored est appelée à la fin d'une
