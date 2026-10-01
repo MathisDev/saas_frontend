@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Play, Search, ArrowRight, ArrowLeft } from "lucide-react";
+import { Play, Search, ArrowRight, ArrowLeft, SquareTerminal, BookOpen, FileCode2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { runConsoleRequest } from "../api";
 import Breadcrumb from "../components/Breadcrumb";
@@ -36,7 +36,9 @@ function JsonBlock({ value }) {
 
 const METHOD_LINE = /^(GET|POST|PATCH|DELETE|PUT)\s+(\S+)\s*$/i;
 
-const DEFAULT_TEXT = `GET /me
+// Exemples affichés en placeholder (grisés, non exécutables) : ils disparaissent
+// dès que l'utilisateur tape quoi que ce soit dans l'éditeur.
+const PLACEHOLDER_TEXT = `GET /me
 
 GET /namespaces
 
@@ -103,7 +105,7 @@ function statusColor(status) {
 export default function Console() {
   const { isAdmin } = useAuth();
   const [tab, setTab] = useState("essayer");
-  const [text, setText] = useState(DEFAULT_TEXT);
+  const [text, setText] = useState("");
   const [activeBlock, setActiveBlock] = useState(null);
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
@@ -111,6 +113,7 @@ export default function Console() {
   const [docSearch, setDocSearch] = useState("");
   const [selectedDoc, setSelectedDoc] = useState(null);
   const textareaRef = useRef(null);
+  const gutterRef = useRef(null);
   const resultRef = useRef(null);
 
   const shortcuts = isAdmin ? [...SHORTCUTS, "GET /admin/namespaces"] : SHORTCUTS;
@@ -204,8 +207,8 @@ export default function Console() {
 
   function insertShortcut(line) {
     const el = textareaRef.current;
-    const sep = text.endsWith("\n") || text === "" ? "" : "\n";
-    const addition = `${sep}\n${line}\n`;
+    const sep = text === "" ? "" : text.endsWith("\n") ? "\n" : "\n\n";
+    const addition = `${sep}${line}\n`;
     const next = text + addition;
     setText(next);
     requestAnimationFrame(() => {
@@ -218,48 +221,44 @@ export default function Console() {
     <div className="md:h-full flex flex-col space-y-6">
       <div>
         <Breadcrumb items={[{ label: "Environnements", to: "/" }, { label: "Console" }]} />
-        <h1 className="text-xl font-semibold">Console API</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          {tab === "essayer" ? (
-            <>
-              Écris une ou plusieurs requêtes ("METHODE /chemin", corps JSON sur les lignes
-              suivantes). Place le curseur dans une requête et lance-la
-              <span className="hidden md:inline">
-                {" "}avec{" "}
-                <kbd className="text-xs bg-slate-100 border border-slate-300 rounded px-1">
-                  Ctrl/Cmd + Entrée
-                </kbd>{" "}
-                ou
-              </span>{" "}
-              avec le bouton Exécuter.
-            </>
-          ) : (
-            "Référence complète des endpoints de l'API : authentification, paramètres, corps de requête et de réponse."
-          )}
-        </p>
-      </div>
-
-      <div className="flex gap-1 border-b border-slate-200 -mt-2">
-        {[
-          { id: "essayer", label: "Essayer" },
-          { id: "docs", label: "Documentation" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition ${
-              tab === t.id
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 text-slate-700 ring-1 ring-slate-200">
+              <SquareTerminal size={16} strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold">Console API</h1>
+              <p className="text-xs text-slate-500">
+                {tab === "essayer"
+                  ? "Écris et exécute des requêtes sur l'API de la plateforme"
+                  : "Référence complète des endpoints : authentification, paramètres, corps et réponses"}
+              </p>
+            </div>
+          </div>
+          <div className="flex bg-slate-100 rounded-lg p-0.5">
+            {[
+              { id: "essayer", label: "Éditeur", icon: SquareTerminal, title: "Écrire et exécuter des requêtes" },
+              { id: "docs", label: "Documentation", icon: BookOpen, title: "Référence de tous les endpoints de l'API" },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                title={t.title}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition ${
+                  tab === t.id ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <t.icon size={14} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {tab === "essayer" && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+          <span className="shrink-0 text-xs text-slate-500">Insérer :</span>
           {shortcuts.map((s) => (
             <button
               key={s}
@@ -274,34 +273,73 @@ export default function Console() {
 
       {tab === "essayer" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 lg:min-h-[420px]">
-        <div className="bg-white rounded-xl shadow flex flex-col overflow-hidden min-h-[300px]">
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-slate-100">
-            <span className="text-xs font-mono text-slate-500 truncate min-w-0">
-              {activeBlock ? `${activeBlock.method} ${activeBlock.path}` : "place le curseur dans une requête"}
-            </span>
+        <div className="bg-slate-950 rounded-xl shadow ring-1 ring-slate-800 flex flex-col overflow-hidden min-h-[300px]">
+          <div className="flex items-center justify-between gap-3 px-3 py-2 bg-slate-900 border-b border-slate-800">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="flex items-center gap-1.5 text-xs text-slate-300 bg-slate-950 rounded-md px-2.5 py-1 ring-1 ring-slate-800">
+                <FileCode2 size={12} className="text-slate-400" />
+                requetes.http
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 truncate min-w-0">
+                {activeBlock ? `${activeBlock.method} ${activeBlock.path}` : text ? "place le curseur dans une requête" : ""}
+              </span>
+            </div>
             <button
               onClick={runActiveBlock}
               disabled={running || !activeBlock}
-              className="shrink-0 flex items-center gap-1.5 bg-slate-900 text-white text-xs font-medium px-3 py-2 sm:py-1.5 rounded-md hover:bg-slate-800 transition disabled:opacity-40"
+              title="Exécuter la requête sous le curseur (Ctrl/Cmd + Entrée)"
+              className="shrink-0 flex items-center gap-1.5 bg-emerald-500 text-slate-950 text-xs font-semibold px-3 py-2 sm:py-1.5 rounded-md hover:bg-emerald-400 transition disabled:opacity-30"
             >
-              <Play size={12} />
+              <Play size={12} fill="currentColor" />
               {running ? "..." : "Exécuter"}
             </button>
           </div>
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onKeyUp={updateActiveBlock}
-            onClick={updateActiveBlock}
-            spellCheck={false}
-            className="flex-1 w-full p-4 text-sm font-mono resize-none outline-none leading-relaxed"
-          />
+          <div className="flex flex-1 min-h-0">
+            {/* Numéros de ligne : défilent avec le textarea (onScroll), d'où le
+                wrap="off" - une ligne repliée décalerait la numérotation. */}
+            <div
+              ref={gutterRef}
+              aria-hidden="true"
+              className="shrink-0 overflow-hidden select-none py-4 pl-3 pr-2 text-right font-mono text-sm leading-6 text-slate-600 border-r border-slate-800/80"
+            >
+              {(text || " ").split("\n").map((_, i) => (
+                <div
+                  key={i}
+                  className={activeBlock && i >= activeBlock.startLine && i <= activeBlock.endLine ? "text-slate-300" : ""}
+                >
+                  {i + 1}
+                </div>
+              ))}
+            </div>
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onKeyUp={updateActiveBlock}
+              onClick={updateActiveBlock}
+              onScroll={(e) => {
+                if (gutterRef.current) gutterRef.current.scrollTop = e.target.scrollTop;
+              }}
+              placeholder={PLACEHOLDER_TEXT}
+              wrap="off"
+              spellCheck={false}
+              autoFocus
+              aria-label="Éditeur de requêtes"
+              className="flex-1 min-w-0 w-full bg-transparent py-4 px-3 text-sm font-mono leading-6 text-slate-100 caret-emerald-400 placeholder:text-slate-600 placeholder:italic resize-none outline-none overflow-auto whitespace-pre selection:bg-slate-700"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 px-3 py-1.5 bg-slate-900 border-t border-slate-800 text-[11px] text-slate-500">
+            <span className="truncate">« METHODE /chemin », puis le corps JSON sur les lignes suivantes</span>
+            <span className="hidden md:inline shrink-0">
+              <kbd className="font-sans bg-slate-800 text-slate-300 rounded px-1.5 py-0.5">Ctrl/Cmd + Entrée</kbd> pour exécuter
+            </span>
+          </div>
         </div>
 
-        <div ref={resultRef} className="bg-white rounded-xl shadow flex flex-col overflow-hidden min-h-[260px] max-h-[70dvh] lg:max-h-none scroll-mt-20">
-          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-100 min-h-[41px]">
+        <div ref={resultRef} className="bg-slate-900 rounded-xl shadow ring-1 ring-slate-800 flex flex-col overflow-hidden min-h-[260px] max-h-[70dvh] lg:max-h-none scroll-mt-20">
+          <div className="flex items-center gap-3 px-3 py-2 bg-slate-900 border-b border-slate-800 min-h-[41px]">
+            {!result && <span className="text-xs text-slate-500">Réponse</span>}
             {result && (
               <>
                 <span className={`text-xs font-mono font-medium px-2 py-0.5 rounded ${statusColor(result.status)}`}>
@@ -314,9 +352,13 @@ export default function Console() {
               </>
             )}
           </div>
-          {runError && <p className="text-xs text-red-600 px-4 pt-2">{runError}</p>}
-          <pre className="flex-1 bg-slate-900 text-slate-100 text-xs p-4 overflow-auto m-0">
-            {result ? JSON.stringify(result.data, null, 2) : ""}
+          {runError && <p className="text-xs text-red-400 px-4 pt-3">{runError}</p>}
+          <pre className="flex-1 bg-slate-950 text-slate-100 text-xs leading-5 p-4 overflow-auto m-0">
+            {result ? (
+              JSON.stringify(result.data, null, 2)
+            ) : (
+              <span className="text-slate-600 italic">La réponse de la requête exécutée s'affichera ici.</span>
+            )}
           </pre>
         </div>
       </div>
