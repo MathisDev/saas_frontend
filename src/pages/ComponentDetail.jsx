@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link, Navigate } from "react-router-dom";
-import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ScrollText, SquareTerminal, RefreshCw, Play } from "lucide-react";
+import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ChevronRight, ScrollText, SquareTerminal, RefreshCw, Play } from "lucide-react";
 import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets, listComponentPipelines, runComponentPipeline } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
@@ -10,7 +10,7 @@ import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/compo
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
 import PipelineList from "../components/pipelines/PipelineList";
 
-// ComponentDetail est la page "Détails" ouverte depuis ComponentInfoPopup (voir
+// ComponentDetail est la page "Détails" ouverte en cliquant un composant (voir
 // NamespaceDetail/ComponentList) : logs + shell, comme PodDetail, mais
 // cadrés sur le composant plutôt que sur un pod précis - logs/exec restant des
 // opérations par pod côté API (voir handlers/pods.go), un sélecteur s'affiche
@@ -29,6 +29,7 @@ export default function ComponentDetail() {
   const [runningPipeline, setRunningPipeline] = useState(false);
   const [pipelineError, setPipelineError] = useState("");
   const [selectedPod, setSelectedPod] = useState(null);
+  const [logsOpen, setLogsOpen] = useState(false);
   const [logs, setLogs] = useState("");
   const [error, setError] = useState("");
 
@@ -219,12 +220,13 @@ export default function ComponentDetail() {
     }
   }
 
+  // Les logs sont repliés par défaut : rien n'est lu tant qu'ils restent fermés.
   useEffect(() => {
-    if (!selectedPod) return;
+    if (!selectedPod || !logsOpen) return;
     loadLogs(selectedPod);
     const interval = setInterval(() => loadLogs(selectedPod), 10000);
     return () => clearInterval(interval);
-  }, [name, selectedPod]);
+  }, [name, selectedPod, logsOpen]);
 
   // Anciens liens vers l'onglet "Données", devenu une page à part.
   if (searchParams.get("tab") === "donnees") {
@@ -373,18 +375,10 @@ export default function ComponentDetail() {
       {hasDatabasePage && (
         <Link
           to={`/namespaces/${name}/components/${comp.name}/database`}
-          className="flex items-center justify-between gap-3 bg-indigo-50 ring-1 ring-indigo-100 rounded-xl px-4 py-3.5 hover:bg-indigo-100/70 transition"
+          className="flex items-center justify-center gap-2.5 w-full bg-indigo-600 text-white text-base font-semibold rounded-xl px-5 py-4 shadow hover:bg-indigo-700 active:bg-indigo-800 transition"
         >
-          <span className="flex items-center gap-3 min-w-0">
-            <span className="w-9 h-9 rounded-lg bg-white ring-1 ring-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-              <Database size={16} />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-slate-900">Gérer la base de données</span>
-              <span className="block text-xs text-slate-500">Tables, éditeur SQL et sauvegardes sur une seule page</span>
-            </span>
-          </span>
-          <ArrowRight size={16} className="text-indigo-600 shrink-0" />
+          <Database size={20} />
+          DB manager
         </Link>
       )}
 
@@ -658,28 +652,6 @@ export default function ComponentDetail() {
             {selectedPod && (
               <>
                 <div className="bg-white rounded-xl shadow p-4 sm:p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <ScrollText size={15} className="text-slate-400" />
-                        <h2 className="text-sm font-semibold">Logs</h2>
-                      </div>
-                      <p className="text-xs text-slate-500">Sortie du conteneur, actualisée toutes les 10 secondes.</p>
-                    </div>
-                    <button
-                      onClick={() => loadLogs(selectedPod)}
-                      className="shrink-0 flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition"
-                    >
-                      <RefreshCw size={12} />
-                      Actualiser
-                    </button>
-                  </div>
-                  <pre className="bg-slate-900 text-slate-100 text-[11px] sm:text-xs rounded-md p-3 sm:p-4 overflow-auto max-h-72 whitespace-pre-wrap break-all">
-                    {logs}
-                  </pre>
-                </div>
-
-                <div className="bg-white rounded-xl shadow p-4 sm:p-5">
                   <div className="flex items-center gap-2 mb-1">
                     <SquareTerminal size={15} className="text-slate-400" />
                     <h2 className="text-sm font-semibold">Shell</h2>
@@ -688,6 +660,34 @@ export default function ComponentDetail() {
                     Session interactive via WebSocket - vim, top, etc. fonctionnent normalement.
                   </p>
                   <Shell namespace={name} pod={selectedPod} />
+                </div>
+
+                <div className="bg-white rounded-xl shadow px-4 py-3 sm:px-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setLogsOpen((v) => !v)}
+                      className="flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition"
+                    >
+                      <ChevronRight size={14} className={`transition-transform ${logsOpen ? "rotate-90" : ""}`} />
+                      <ScrollText size={13} />
+                      {logsOpen ? "Masquer les logs du conteneur" : "Afficher les logs du conteneur"}
+                    </button>
+                    {logsOpen && (
+                      <button
+                        onClick={() => loadLogs(selectedPod)}
+                        className="shrink-0 flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition"
+                      >
+                        <RefreshCw size={12} />
+                        Actualiser
+                      </button>
+                    )}
+                  </div>
+                  {logsOpen && (
+                    <pre className="mt-3 bg-slate-900 text-slate-100 text-[11px] sm:text-xs rounded-md p-3 sm:p-4 overflow-auto max-h-72 whitespace-pre-wrap break-all">
+                      {logs || "Chargement..."}
+                    </pre>
+                  )}
                 </div>
               </>
             )}

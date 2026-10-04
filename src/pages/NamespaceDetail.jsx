@@ -5,7 +5,6 @@ import { GrafanaIcon } from "../components/BrandIcons";
 import { getNamespace, deleteNamespace, getComponentsSummary, addComponent, refreshNamespace, getNamespacePipelines } from "../api";
 import ComponentList from "../components/ComponentList";
 import PipelineList from "../components/pipelines/PipelineList";
-import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import GeneratedPasswords from "../components/GeneratedPasswords";
@@ -25,7 +24,6 @@ export default function NamespaceDetail() {
   const [ns, setNs] = useState(null);
   const [componentStats, setComponentStats] = useState({});
   const [error, setError] = useState("");
-  const [selectedComponent, setSelectedComponent] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -233,7 +231,7 @@ export default function NamespaceDetail() {
               <Boxes size={15} className="text-slate-400" />
               <h2 className="text-sm font-semibold">Composants</h2>
             </div>
-            <p className="text-xs text-slate-500">Clique sur un composant pour son résumé, ses liens et ses détails.</p>
+            <p className="text-xs text-slate-500">Clique sur un composant pour ouvrir sa configuration, ses pipelines et ses logs.</p>
           </div>
           <button
             onClick={() => setShowAddComponent((v) => !v)}
@@ -363,7 +361,7 @@ export default function NamespaceDetail() {
         )}
 
         <div className="mt-4">
-          <ComponentList components={ns.components} pipelines={pipelines} onSelect={(c) => setSelectedComponent(c.name)} />
+          <ComponentList namespace={name} components={ns.components} stats={componentStats} pipelines={pipelines} />
         </div>
       </div>
 
@@ -377,13 +375,6 @@ export default function NamespaceDetail() {
       <div id="secrets" className="scroll-mt-4">
         <SecretsPanel namespace={name} onChange={load} />
       </div>
-
-      <ComponentInfoPopup
-        namespace={name}
-        component={ns.components.find((c) => c.name === selectedComponent) || null}
-        stats={selectedComponent ? componentStats[selectedComponent] : null}
-        onClose={() => setSelectedComponent(null)}
-      />
 
       <p className="text-xs text-slate-300 text-center">v{APP_VERSION}</p>
     </div>

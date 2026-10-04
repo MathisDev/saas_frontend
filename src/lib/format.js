@@ -1,5 +1,5 @@
-// formatBytes/formatRelativeTime sont partagés entre la popup de composant
-// (ComponentInfoPopup) et sa page de détail (ComponentDetail) - mêmes stats
+// formatBytes/formatRelativeTime sont partagés entre la carte d'un composant
+// (ComponentList) et sa page de détail (ComponentDetail) - mêmes stats
 // (voir handlers/dto.go ComponentSummaryResponse) affichées aux deux endroits.
 export function formatBytes(bytes) {
   if (!bytes) return "0 Mo";
