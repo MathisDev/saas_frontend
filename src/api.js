@@ -390,3 +390,38 @@ export async function runConsoleRequest(method, path, body) {
 }
 
 export default api;
+
+// Pipelines GitLab des composants (voir handlers/pipelines.go côté API) : l'API les
+// lit avec son propre token, le navigateur n'appelle jamais GitLab.
+function pipelinesPath(name, component) {
+  return `/namespaces/${name}/pipelines/${component}`;
+}
+
+// getNamespacePipelines renvoie la dernière pipeline de chaque composant.
+export async function getNamespacePipelines(name) {
+  const { data } = await api.get(`/namespaces/${name}/pipelines`);
+  return data.components;
+}
+
+export async function listComponentPipelines(name, component) {
+  const { data } = await api.get(pipelinesPath(name, component));
+  return data;
+}
+
+export async function runComponentPipeline(name, component) {
+  const { data } = await api.post(pipelinesPath(name, component));
+  return data;
+}
+
+export async function retryComponentPipeline(name, component, pipelineId) {
+  await api.post(`${pipelinesPath(name, component)}/${pipelineId}/retry`);
+}
+
+export async function cancelComponentPipeline(name, component, pipelineId) {
+  await api.post(`${pipelinesPath(name, component)}/${pipelineId}/cancel`);
+}
+
+export async function getPipelineJobLog(name, component, jobId) {
+  const { data } = await api.get(`${pipelinesPath(name, component)}/jobs/${jobId}/log`);
+  return data;
+}

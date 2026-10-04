@@ -1,6 +1,7 @@
 import { ChevronRight, Wifi } from "lucide-react";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 import { STATUS_STYLE } from "../lib/format";
+import { StatusBadge } from "./pipelines/PipelineStatus";
 
 // ComponentList est la seule vue des composants sur la page environnement (voir
 // NamespaceDetail) : une carte réseau a été tentée (ComponentNetworkMap) mais
@@ -8,7 +9,8 @@ import { STATUS_STYLE } from "../lib/format";
 // est plat au sein d'un namespace, aucune dépendance entre composants n'est
 // trackée côté API), le "plan" ne montrait rien de plus qu'une liste avec un
 // habillage inutile. Cliquer une ligne ouvre ComponentInfoPopup, comme avant.
-export default function ComponentList({ components, onSelect }) {
+// pipelines (facultatif) : dernière pipeline GitLab par nom de composant.
+export default function ComponentList({ components, onSelect, pipelines = {} }) {
   if (components.length === 0) {
     return <p className="text-sm text-slate-500">Aucun composant pour l'instant.</p>;
   }
@@ -43,6 +45,8 @@ export default function ComponentList({ components, onSelect }) {
                 <span className="hidden sm:inline">public</span>
               </span>
             )}
+
+            {pipelines[c.name] && <StatusBadge status={pipelines[c.name].status} compact />}
 
             <span
               className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link, Navigate } from "react-router-dom";
-import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ScrollText, SquareTerminal, RefreshCw } from "lucide-react";
-import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets } from "../api";
+import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ScrollText, SquareTerminal, RefreshCw, Workflow } from "lucide-react";
+import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets, getNamespacePipelines } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { GitLabIcon, GrafanaIcon } from "../components/BrandIcons";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
+import { StatusBadge, formatAgo } from "../components/pipelines/PipelineStatus";
 
 // ComponentDetail est la page "Détails" ouverte depuis ComponentInfoPopup (voir
 // NamespaceDetail/ComponentList) : logs + shell, comme PodDetail, mais
@@ -23,6 +24,8 @@ export default function ComponentDetail() {
   const [ns, setNs] = useState(null);
   const [pods, setPods] = useState([]);
   const [stats, setStats] = useState(null);
+  // latestPipeline : dernière pipeline GitLab du composant (undefined tant que non lue).
+  const [latestPipeline, setLatestPipeline] = useState(undefined);
   const [selectedPod, setSelectedPod] = useState(null);
   const [logs, setLogs] = useState("");
   const [error, setError] = useState("");
@@ -59,6 +62,9 @@ export default function ComponentDetail() {
       } catch {
         // best-effort - ne bloque jamais le reste de la page
       }
+      getNamespacePipelines(name)
+        .then((all) => setLatestPipeline(all.find((p) => p.component === component)?.pipeline ?? null))
+        .catch(() => setLatestPipeline(null));
     } catch (err) {
       setError(err.response?.data?.error || "Erreur de chargement");
     }
@@ -346,6 +352,33 @@ export default function ComponentDetail() {
           </div>
         )}
       </div>
+
+      {comp.repoUrl && (
+        <Link
+          to={`/namespaces/${name}/components/${comp.name}/pipelines`}
+          className="flex items-center justify-between gap-3 bg-orange-50 ring-1 ring-orange-100 rounded-xl px-4 py-3.5 hover:bg-orange-100/70 transition"
+        >
+          <span className="flex items-center gap-3 min-w-0">
+            <span className="w-9 h-9 rounded-lg bg-white ring-1 ring-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+              <Workflow size={16} />
+            </span>
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                Pipelines CI/CD
+                {latestPipeline && <StatusBadge status={latestPipeline.status} />}
+              </span>
+              <span className="block text-xs text-slate-500 truncate">
+                {latestPipeline
+                  ? `Dernière pipeline #${latestPipeline.iid} ${formatAgo(latestPipeline.createdAt)} - jobs, journaux, relance`
+                  : latestPipeline === null
+                    ? "Construction et déploiement de l'image : jobs, journaux, relance"
+                    : "Chargement..."}
+              </span>
+            </span>
+          </span>
+          <ArrowRight size={16} className="text-orange-600 shrink-0" />
+        </Link>
+      )}
 
       {hasDatabasePage && (
         <Link

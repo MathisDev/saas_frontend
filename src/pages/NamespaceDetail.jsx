@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Trash2, ExternalLink, Plus, Globe, RefreshCw, Boxes, Gauge } from "lucide-react";
 import { GrafanaIcon } from "../components/BrandIcons";
-import { getNamespace, deleteNamespace, getComponentsSummary, addComponent, refreshNamespace } from "../api";
+import { getNamespace, deleteNamespace, getComponentsSummary, addComponent, refreshNamespace, getNamespacePipelines } from "../api";
 import ComponentList from "../components/ComponentList";
 import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
@@ -37,6 +37,8 @@ export default function NamespaceDetail() {
   // l'environnement (voir GeneratedPasswords, SecretsPanel).
   const [addedSecrets, setAddedSecrets] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  // pipelines : dernière pipeline GitLab de chaque composant (badge de la liste).
+  const [pipelines, setPipelines] = useState({});
   const [refreshError, setRefreshError] = useState("");
 
   async function load() {
@@ -49,6 +51,9 @@ export default function NamespaceDetail() {
       } catch {
         // best-effort - ne bloque jamais le reste de la page
       }
+      getNamespacePipelines(name)
+        .then((all) => setPipelines(Object.fromEntries(all.filter((p) => p.pipeline).map((p) => [p.component, p.pipeline]))))
+        .catch(() => {});
     } catch (err) {
       setError(err.response?.data?.error || "Erreur de chargement");
     }
@@ -352,7 +357,7 @@ export default function NamespaceDetail() {
         )}
 
         <div className="mt-4">
-          <ComponentList components={ns.components} onSelect={(c) => setSelectedComponent(c.name)} />
+          <ComponentList components={ns.components} pipelines={pipelines} onSelect={(c) => setSelectedComponent(c.name)} />
         </div>
       </div>
 
