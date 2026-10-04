@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate, Link, Navigate } from "react-router-dom";
-import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ScrollText, SquareTerminal, RefreshCw, Workflow } from "lucide-react";
-import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets, getNamespacePipelines } from "../api";
+import { ExternalLink, Wifi, Plus, Trash2, Globe, Settings2, KeyRound, Lock, RotateCw, Database, ArrowRight, ScrollText, SquareTerminal, RefreshCw, Play } from "lucide-react";
+import { getNamespace, listPods, getComponentsSummary, getPodLogs, updateComponent, deleteComponent, listSecrets, listComponentPipelines, runComponentPipeline } from "../api";
 import Shell from "../components/Shell";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
 import { GitLabIcon, GrafanaIcon } from "../components/BrandIcons";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING, DATABASE_TYPES } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
-import { StatusBadge, formatAgo } from "../components/pipelines/PipelineStatus";
+import PipelineList from "../components/pipelines/PipelineList";
 
 // ComponentDetail est la page "Détails" ouverte depuis ComponentInfoPopup (voir
 // NamespaceDetail/ComponentList) : logs + shell, comme PodDetail, mais
@@ -24,8 +24,10 @@ export default function ComponentDetail() {
   const [ns, setNs] = useState(null);
   const [pods, setPods] = useState([]);
   const [stats, setStats] = useState(null);
-  // latestPipeline : dernière pipeline GitLab du composant (undefined tant que non lue).
-  const [latestPipeline, setLatestPipeline] = useState(undefined);
+  // pipelines : pipelines GitLab du composant (null tant que non lues ou sans dépôt).
+  const [pipelines, setPipelines] = useState(null);
+  const [runningPipeline, setRunningPipeline] = useState(false);
+  const [pipelineError, setPipelineError] = useState("");
   const [selectedPod, setSelectedPod] = useState(null);
   const [logs, setLogs] = useState("");
   const [error, setError] = useState("");
@@ -62,9 +64,9 @@ export default function ComponentDetail() {
       } catch {
         // best-effort - ne bloque jamais le reste de la page
       }
-      getNamespacePipelines(name)
-        .then((all) => setLatestPipeline(all.find((p) => p.component === component)?.pipeline ?? null))
-        .catch(() => setLatestPipeline(null));
+      listComponentPipelines(name, component)
+        .then((res) => setPipelines(res.hasRepository ? res.pipelines : null))
+        .catch(() => {});
     } catch (err) {
       setError(err.response?.data?.error || "Erreur de chargement");
     }
@@ -78,7 +80,22 @@ export default function ComponentDetail() {
 
   useEffect(() => {
     setConfigLoaded(false);
+    setPipelines(null);
   }, [component]);
+
+  // runPipeline lance une pipeline sur la branche par défaut du dépôt, puis ouvre son détail.
+  async function runPipeline() {
+    setRunningPipeline(true);
+    setPipelineError("");
+    try {
+      const p = await runComponentPipeline(name, component);
+      navigate(`/namespaces/${name}/components/${component}/pipelines/${p.id}`);
+    } catch (err) {
+      setPipelineError(err.response?.data?.error || "Impossible de lancer la pipeline");
+    } finally {
+      setRunningPipeline(false);
+    }
+  }
 
   useEffect(() => {
     if (configLoaded) return;
@@ -353,33 +370,6 @@ export default function ComponentDetail() {
         )}
       </div>
 
-      {comp.repoUrl && (
-        <Link
-          to={`/namespaces/${name}/components/${comp.name}/pipelines`}
-          className="flex items-center justify-between gap-3 bg-orange-50 ring-1 ring-orange-100 rounded-xl px-4 py-3.5 hover:bg-orange-100/70 transition"
-        >
-          <span className="flex items-center gap-3 min-w-0">
-            <span className="w-9 h-9 rounded-lg bg-white ring-1 ring-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-              <Workflow size={16} />
-            </span>
-            <span className="min-w-0">
-              <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
-                Pipelines CI/CD
-                {latestPipeline && <StatusBadge status={latestPipeline.status} />}
-              </span>
-              <span className="block text-xs text-slate-500 truncate">
-                {latestPipeline
-                  ? `Dernière pipeline #${latestPipeline.iid} ${formatAgo(latestPipeline.createdAt)} - jobs, journaux, relance`
-                  : latestPipeline === null
-                    ? "Construction et déploiement de l'image : jobs, journaux, relance"
-                    : "Chargement..."}
-              </span>
-            </span>
-          </span>
-          <ArrowRight size={16} className="text-orange-600 shrink-0" />
-        </Link>
-      )}
-
       {hasDatabasePage && (
         <Link
           to={`/namespaces/${name}/components/${comp.name}/database`}
@@ -620,6 +610,26 @@ export default function ComponentDetail() {
             </button>
           </form>
         </div>
+
+        {pipelines && (
+          <PipelineList
+            namespace={name}
+            pipelines={pipelines}
+            description={pipelineError || "Construction et déploiement de l'image à chaque push sur le dépôt."}
+            emptyText="Aucune pipeline pour l'instant : chaque push sur la branche principale du dépôt en déclenche une."
+            action={
+              <button
+                type="button"
+                onClick={runPipeline}
+                disabled={runningPipeline}
+                className="shrink-0 flex items-center gap-1.5 text-xs text-slate-600 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 hover:bg-slate-50 transition disabled:opacity-50"
+              >
+                <Play size={12} />
+                {runningPipeline ? "Lancement..." : "Lancer une pipeline"}
+              </button>
+            }
+          />
+        )}
 
         {pods.length === 0 ? (
           <div className="bg-white rounded-xl shadow p-5">

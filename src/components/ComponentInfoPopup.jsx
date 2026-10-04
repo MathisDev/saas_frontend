@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { X, ExternalLink, Globe, ArrowRight, Wifi, Database, Workflow } from "lucide-react";
+import { X, ExternalLink, Globe, ArrowRight, Wifi, Database } from "lucide-react";
 import { GitLabIcon } from "./BrandIcons";
 import { TYPE_STYLE, ACCENT_BG, ACCENT_RING } from "../lib/componentTypes";
 import { STATUS_STYLE, formatBytes, formatRelativeTime } from "../lib/format";
@@ -104,15 +104,6 @@ export default function ComponentInfoPopup({ namespace, component, stats, onClos
           )}
         </div>
 
-        {component.repoUrl && (
-          <Link
-            to={`/namespaces/${namespace}/components/${component.name}/pipelines`}
-            className="flex items-center justify-center gap-1.5 w-full mb-2 text-sm font-medium text-orange-700 bg-orange-50 ring-1 ring-orange-100 px-4 py-3 sm:py-2 rounded-lg sm:rounded-md hover:bg-orange-100 transition"
-          >
-            <Workflow size={14} />
-            Pipelines
-          </Link>
-        )}
         {component.type === "postgres" && (
           <Link
             to={`/namespaces/${namespace}/components/${component.name}/database`}

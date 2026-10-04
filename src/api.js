@@ -397,14 +397,20 @@ function pipelinesPath(name, component) {
   return `/namespaces/${name}/pipelines/${component}`;
 }
 
-// getNamespacePipelines renvoie la dernière pipeline de chaque composant.
+// getNamespacePipelines renvoie les pipelines récentes de tout l'environnement
+// (pipelines) et la dernière de chaque composant (components).
 export async function getNamespacePipelines(name) {
   const { data } = await api.get(`/namespaces/${name}/pipelines`);
-  return data.components;
+  return data;
 }
 
 export async function listComponentPipelines(name, component) {
   const { data } = await api.get(pipelinesPath(name, component));
+  return data;
+}
+
+export async function getComponentPipeline(name, component, pipelineId) {
+  const { data } = await api.get(`${pipelinesPath(name, component)}/${pipelineId}`);
   return data;
 }
 
@@ -421,7 +427,7 @@ export async function cancelComponentPipeline(name, component, pipelineId) {
   await api.post(`${pipelinesPath(name, component)}/${pipelineId}/cancel`);
 }
 
-export async function getPipelineJobLog(name, component, jobId) {
-  const { data } = await api.get(`${pipelinesPath(name, component)}/jobs/${jobId}/log`);
+export async function getPipelineJobLog(name, component, pipelineId, jobId) {
+  const { data } = await api.get(`${pipelinesPath(name, component)}/${pipelineId}/jobs/${jobId}/log`);
   return data;
 }

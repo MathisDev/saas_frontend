@@ -4,6 +4,7 @@ import { Trash2, ExternalLink, Plus, Globe, RefreshCw, Boxes, Gauge } from "luci
 import { GrafanaIcon } from "../components/BrandIcons";
 import { getNamespace, deleteNamespace, getComponentsSummary, addComponent, refreshNamespace, getNamespacePipelines } from "../api";
 import ComponentList from "../components/ComponentList";
+import PipelineList from "../components/pipelines/PipelineList";
 import ComponentInfoPopup from "../components/ComponentInfoPopup";
 import Breadcrumb from "../components/Breadcrumb";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
@@ -39,6 +40,8 @@ export default function NamespaceDetail() {
   const [refreshing, setRefreshing] = useState(false);
   // pipelines : dernière pipeline GitLab de chaque composant (badge de la liste).
   const [pipelines, setPipelines] = useState({});
+  // envPipelines : pipelines récentes de tout l'environnement (section Pipelines).
+  const [envPipelines, setEnvPipelines] = useState(null);
   const [refreshError, setRefreshError] = useState("");
 
   async function load() {
@@ -52,7 +55,10 @@ export default function NamespaceDetail() {
         // best-effort - ne bloque jamais le reste de la page
       }
       getNamespacePipelines(name)
-        .then((all) => setPipelines(Object.fromEntries(all.filter((p) => p.pipeline).map((p) => [p.component, p.pipeline]))))
+        .then((res) => {
+          setPipelines(Object.fromEntries(res.components.filter((p) => p.pipeline).map((p) => [p.component, p.pipeline])));
+          setEnvPipelines(res.components.some((c) => c.hasRepository) ? res.pipelines : null);
+        })
         .catch(() => {});
     } catch (err) {
       setError(err.response?.data?.error || "Erreur de chargement");
@@ -360,6 +366,13 @@ export default function NamespaceDetail() {
           <ComponentList components={ns.components} pipelines={pipelines} onSelect={(c) => setSelectedComponent(c.name)} />
         </div>
       </div>
+
+      <PipelineList
+        namespace={name}
+        pipelines={envPipelines}
+        showComponent
+        description="Dernières pipelines de tous les composants de l'environnement."
+      />
 
       <div id="secrets" className="scroll-mt-4">
         <SecretsPanel namespace={name} onChange={load} />

@@ -712,15 +712,18 @@ export const API_REFERENCE = [
     examplePath: "/namespaces/ns-exemple/pipelines",
     auth: "authenticated",
     category: "Pipelines",
-    description: "Dernière pipeline GitLab de chaque composant de l'environnement (sans les jobs). Un échec GitLab sur un composant n'empêche pas les autres de répondre (champ error).",
+    description: "Pipelines GitLab récentes de tout l'environnement (pipelines : 30 max, la plus récente d'abord, chacune avec son composant et ses jobs) et dernière pipeline de chaque composant (components). Un échec GitLab sur un composant n'empêche pas les autres de répondre (champ error).",
     pathParams: [{ name: ":id", description: "nom complet de l'environnement" }],
     response: {
       components: [
         {
           component: "api",
           hasRepository: true,
-          pipeline: { id: 567, iid: 12, sha: "1a2b3c4d5e6f", ref: "main", status: "success", source: "push", createdAt: "2026-10-04T09:12:00Z", webUrl: "https://gitlab.saas-depoy.com/exemple/production-api/-/pipelines/567", deployed: true },
+          pipeline: { id: 567, iid: 12, sha: "1a2b3c4d5e6f", ref: "main", status: "success", source: "push", createdAt: "2026-10-04T09:12:00Z", webUrl: "https://gitlab.saas-depoy.com/exemple/production-api/-/pipelines/567", deployed: true, component: "api" },
         },
+      ],
+      pipelines: [
+        { id: 567, iid: 12, sha: "1a2b3c4d5e6f", ref: "main", status: "success", source: "push", createdAt: "2026-10-04T09:12:00Z", webUrl: "https://gitlab.saas-depoy.com/exemple/production-api/-/pipelines/567", commitTitle: "Ajoute la route /health", author: "Exemple", deployed: true, component: "api", jobs: [{ id: 901, name: "build", stage: "build", status: "success" }, { id: 902, name: "deploy", stage: "deploy", status: "success" }] },
       ],
     },
     responseNotes: ["status : created, pending, running, success, failed, canceled, skipped, manual.", "pipeline vaut null si le dépôt n'a encore aucune pipeline."],
@@ -759,14 +762,35 @@ export const API_REFERENCE = [
   },
   {
     method: "GET",
-    path: "/namespaces/:id/pipelines/:component/jobs/:job/log",
-    examplePath: "/namespaces/ns-exemple/pipelines/api/jobs/901/log",
+    path: "/namespaces/:id/pipelines/:component/:pipeline",
+    examplePath: "/namespaces/ns-exemple/pipelines/api/567",
+    auth: "authenticated",
+    category: "Pipelines",
+    description: "Une pipeline du composant et ses jobs (build puis deploy).",
+    pathParams: [
+      { name: ":id", description: "nom complet de l'environnement" },
+      { name: ":component", description: "nom du composant" },
+      { name: ":pipeline", description: "id de la pipeline (pas iid)" },
+    ],
+    response: {
+      id: 567, iid: 12, sha: "1a2b3c4d5e6f", ref: "main", status: "failed", source: "push",
+      createdAt: "2026-10-04T09:12:00Z", webUrl: "https://gitlab.saas-depoy.com/exemple/production-api/-/pipelines/567",
+      commitTitle: "Ajoute la route /health", author: "Exemple", deployed: false, component: "api",
+      jobs: [{ id: 901, name: "build", stage: "build", status: "failed", duration: 98.2, failureReason: "script_failure" }],
+    },
+    responseNotes: ["404 si la pipeline n'appartient pas au dépôt du composant."],
+  },
+  {
+    method: "GET",
+    path: "/namespaces/:id/pipelines/:component/:pipeline/jobs/:job/log",
+    examplePath: "/namespaces/ns-exemple/pipelines/api/567/jobs/901/log",
     auth: "authenticated",
     category: "Pipelines",
     description: "Journal d'un job, en texte brut (codes ANSI et marqueurs de section GitLab retirés).",
     pathParams: [
       { name: ":id", description: "nom complet de l'environnement" },
       { name: ":component", description: "nom du composant" },
+      { name: ":pipeline", description: "id de la pipeline du job" },
       { name: ":job", description: "id du job (jobs[].id)" },
     ],
     response: {
@@ -774,7 +798,7 @@ export const API_REFERENCE = [
       log: "$ /kaniko/executor --context ...\nERROR: process \"/bin/sh -c npm ci\" did not complete successfully",
       truncated: false,
     },
-    responseNotes: ["Seuls les derniers 512 Kio sont renvoyés (truncated: true).", "404 si le job n'appartient pas au dépôt du composant."],
+    responseNotes: ["Seuls les derniers 512 Kio sont renvoyés (truncated: true).", "404 si le job n'appartient pas à cette pipeline du composant."],
   },
   {
     method: "POST",
