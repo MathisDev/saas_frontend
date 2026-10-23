@@ -1,37 +1,59 @@
-# Déploie ns-mathismottetpro-beauval-en-caux/beauval à chaque push sur main.
+# Déploie sur Codable (client mathismottetpro) les environnements branchés sur la
+# branche poussée. Le même fichier sert à toutes les branches.
 name: Deploy
 on:
   push:
-    branches: ["main"]
+    branches: ["**"]
   workflow_dispatch:
 permissions:
   contents: read
   id-token: write
 concurrency:
-  group: codable-deploy-ns-mathismottetpro-beauval-en-caux-beauval
+  group: codable-deploy-${{ github.ref }}
   cancel-in-progress: false
 defaults:
   run:
     shell: bash
-env:
-  IMAGE: images.saas-depoy.com/clients/mathismottetpro/beauval-en-caux-beauval
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Target
+        id: target
+        run: |
+          TOKEN=$(curl -sS --fail-with-body -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https%3A%2F%2Fapi.saas-depoy.com" | jq -r .value)
+          IMAGES=$(curl -sS --fail-with-body --retry 5 --retry-connrefused -X POST https://api.saas-depoy.com/api/v1/deploy/targets \
+            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"client":"mathismottetpro"}' |
+            jq -r '[.targets[].image] | join(" ")')
+          if [ -z "$IMAGES" ]; then echo "Rien à déployer depuis la branche $GITHUB_REF_NAME"; fi
+          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
+        if: steps.target.outputs.images != ''
       - name: Build
-        run: docker buildx build --platform linux/amd64 --provenance=false --load -t "$IMAGE:$GITHUB_SHA" .
+        if: steps.target.outputs.images != ''
+        run: docker buildx build --platform linux/amd64 --provenance=false --load -t "codable-build:$GITHUB_SHA" .
       - name: Push
+        if: steps.target.outputs.images != ''
+        env:
+          IMAGES: ${{ steps.target.outputs.images }}
         run: |
           TOKEN=$(curl -sS --fail-with-body -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https%3A%2F%2Fapi.saas-depoy.com" | jq -r .value)
           echo "$TOKEN" | docker login images.saas-depoy.com -u github-actions --password-stdin
-          docker push "$IMAGE:$GITHUB_SHA"
+          for IMAGE in $IMAGES; do
+            docker tag "codable-build:$GITHUB_SHA" "$IMAGE:$GITHUB_SHA"
+            docker push "$IMAGE:$GITHUB_SHA"
+          done
       - name: Deploy
+        if: steps.target.outputs.images != ''
+        env:
+          IMAGES: ${{ steps.target.outputs.images }}
         run: |
           TOKEN=$(curl -sS --fail-with-body -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https%3A%2F%2Fapi.saas-depoy.com" | jq -r .value)
-          curl -sS --fail-with-body --retry 5 --retry-connrefused -X POST https://api.saas-depoy.com/api/v1/deploy \
-            -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d "{\"namespace\":\"ns-mathismottetpro-beauval-en-caux\",\"component\":\"beauval\",\"image\":\"$IMAGE:$GITHUB_SHA\"}"
+          for IMAGE in $IMAGES; do
+            curl -sS --fail-with-body --retry 5 --retry-connrefused -X POST https://api.saas-depoy.com/api/v1/deploy \
+              -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              -d "{\"client\":\"mathismottetpro\",\"image\":\"$IMAGE:$GITHUB_SHA\"}"
+          done
